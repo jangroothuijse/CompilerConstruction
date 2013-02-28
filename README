@@ -1,0 +1,13 @@
+Language:
+Clean 2.4
+
+Required Libs:
+ArgEnv
+StdMaybe
+
+Deliverable 1:
+
+Tokenizer
+Parser	
+Pretty-printer
+10 Examples
