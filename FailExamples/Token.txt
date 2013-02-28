@@ -1,0 +1,66 @@
+/*
+	Three ways to implement the factorial function in SPL.
+	First the recursive version.
+*/
+Int facR(Int n)
+{
+	if ( n < 2 )
+		return 1;
+	else
+		return n * facR(n - 1) "
+}
+
+
+// The iterative version of the factorial function
+Int FacI(Int n)
+{
+	Int r = 1;
+	while ( n > 1 )
+	{
+		r = r * n;
+		n = n - 1;
+	}
+	return r;
+}
+
+// A main function to check the results
+Void main()
+{
+	Int n = 0;
+	Int facN = 1;
+	Bool ok = True;
+	while (n < 20)
+	{
+		facN = facR(n);
+		if (facN != facl(n) || facN != facL(n))
+		{
+			print (n : FacN : facl(n) : facL(n) : []);
+			ok False;
+		}
+		n = n + 1;
+	}
+	print (ok);
+}
+
+// A list based factorial function
+// Defined here to show that functions can be given in any order (unlike C)
+Int facL(Int n)
+{
+	return product(fromTo(1, n));
+}
+
+Int product ([Int] list)
+{
+	if (isEmpty(list))
+		return 1;
+	else
+		return head(list) * product(tail(list));
+}
+
+[Int] fromTo (Int from, Int to)
+{
+	if (from <= to)
+		return from : fromTo (from + 1, to);
+	else
+		return [];
+}
