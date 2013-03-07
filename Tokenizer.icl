@@ -97,7 +97,7 @@ tokens = [
 	
 		// OPS
 		// 	Comparison
-		symbol "==" (Op Eq), symbol "=<" (Op Eq), symbol "<=" (Op LTE),  symbol ">=" (Op GTE), symbol ">=" (Op GTE), symbol "!=" (Op NEq),
+		symbol "==" (Op Eq), symbol "<=" (Op LTE),  symbol ">=" (Op GTE), symbol ">=" (Op GTE), symbol "!=" (Op NEq),
 		symbol "<" (Op LT), symbol ">" (Op GT),
 		// 	Logical
 		symbol "&&" (Op And), symbol "||" (Op Or),		
