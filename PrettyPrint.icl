@@ -1,9 +1,10 @@
 implementation module PrettyPrint
 
 import Tokenizer
+import Result
 
-prettyPrint :: [TokenOnLine] -> String
-prettyPrint [{token = x}:xs] = " " +++ (p x) +++ (prettyPrint xs)
+prettyPrint :: (Result [TokenOnLine]) -> String
+prettyPrint {result = [{token = x}:xs]} = " " +++ (p x) +++ (prettyPrint {result = xs, errors = []})
 where
 	p :: Token -> String
 	p Popen = "("

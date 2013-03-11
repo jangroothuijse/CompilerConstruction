@@ -2,6 +2,7 @@ implementation module Tokenizer
 
 import StdEnv
 import StdMaybe
+import Result
 
 :: Tokenizer :== [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
 :: CharOnLine = { c :: Char, l :: Int }
@@ -112,8 +113,8 @@ tokens = [
 		tokenizeFail
 	]
 	
-tokenizer :: ([String] -> [TokenOnLine])
-tokenizer = snd  o fromJust o (tokenize tokens) o toCharsInLine
+tokenizer :: (Result [String]) -> Result [TokenOnLine]
+tokenizer {result = r} = {result = (snd o fromJust o (tokenize tokens) o (toCharsInLine)) r, errors = []}
 
 toCharsInLine :: [String] -> [CharOnLine]
 toCharsInLine strings = f 1 strings
@@ -121,4 +122,4 @@ where
 	f _ [] = []
 	f i [x:xs] = [{ c = y, l = i} \\ y <-: x] ++ f (i+1) xs
 
-Start = tokenizer ["/*1*/{ } *\n",  "/** dont care */ 3\n", "if (foo == True)\n", "\n", "bar = 34;\n", "else bar = 302a;  // this should not show up"]
+Start = tokenizer {result = ["/*1*/{ } *\n",  "/** dont care */ 3\n", "if (foo == True)\n", "\n", "bar = 34;\n", "else bar = 302a;  // this should not show up"], errors = []}

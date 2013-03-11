@@ -4,12 +4,14 @@ import StdEnv
 import ArgEnv
 import Tokenizer
 import PrettyPrint
+import Result
 
-toLines :: *File -> [String]
+toLines :: *File -> Result [String]
 toLines file
 # (line, file) = freadline file
-| size line == 0	=	[]
-= [line: toLines file]
+| size line == 0	=	{ result = [], errors = []}
+# {result = r, errors = e} = toLines file
+= { result = [line: r], errors = e }
 
 Start :: *World -> String
 Start world

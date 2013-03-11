@@ -1,5 +1,6 @@
 definition module PrettyPrint
 
 import Tokenizer
+import Result
 
-prettyPrint :: [TokenOnLine] -> String
+prettyPrint :: (Result [TokenOnLine]) -> String
