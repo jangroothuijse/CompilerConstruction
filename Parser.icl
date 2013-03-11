@@ -28,6 +28,19 @@ parseRetDecl r
 parseType :: [TokenOnLine] -> (Maybe Type, [String], [TokenOnLine])
 parseType [{token = KInt}: rs] = (Just TInt, [], rs)
 parseType [{token = KBool}: rs] = (Just PBool, [], rs)
-parseType [{token = Popen}: rs] = (Just (TTup (PBool, PBool)), [], rs) // TBD
-parseType [{line = l}:rs] = (Nothing, ["Can't parse line " +++ (toString l)], rs)
+parseType [{token = Popen}: rs]
+#(t1, e, rs) = parseType rs
+|(isNothing t1) = (Nothing, e, rs)
+|(isComma (hd rs))
+	#(t2, e2, rs) = parseType (tl rs)
+	|(isNothing t2) = (Nothing, e ++ e2, rs)
+	= (Just (TTup (fromJust t1, fromJust t2)), e ++ e2, rs)
+=(Nothing, ["Can't parse line " +++ (toLineString (hd rs)) +++ ", expected ','": e], rs)
+
+parseType [{line = l}:rs] = (Nothing, ["Can't parse line " +++ (toString l) +++ ", expected Type"], rs)
 parseType [] = (Nothing, ["Unexpected end of file"], [])
+
+isComma {token = Comma} = True
+isComma _ = False
+
+toLineString {line = l} = toString l
