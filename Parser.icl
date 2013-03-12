@@ -17,9 +17,10 @@ parseProg [r:rs]
 #(t1, t2) = fromJust t
 #(t3, e3, rs3) = parsePopen rs
 |(isNothing t3) = cantParse r "VarDecl unsupported" rs // TBD
-#(t, e, rs) = parseFArgs rs3 ~> parsePClose ~> parseCBOpen // TBD ~># parseStmts // FunDecl
+#(t, e, rs) = parseFArgs rs3 ~> parsePClose ~> parseCBOpen ~># parseVarDecls_ ~># parseStmts // FunDecl
 |(isNothing t) = (Nothing, e, rs) ~>. cantParse r "FunDecl"
-=(Just (P [F (Fun t1 t2 (fromJust t) [] [])]), e, rs)
+#((t4, t5), t6) = fromJust t
+=(Just (P [F (Fun t1 t2 t4 t5 t6)]), e, rs)
 //=cantParse r "VarDecl or FunDecl"
 parseProg [] = (Nothing, [], [])
 
@@ -45,7 +46,7 @@ parseType [r:rs] = cantParse r "Type" rs
 parseType [] = endOfFileError
 
 parseFArgs :: [TokenOnLine] -> (Maybe [FArgs], [String], [TokenOnLine])
-parseFArgs r
+parseFArgs r // FArgs+
 #(t, e, rs) = parseFArg r
 |(isNothing t) = (Nothing, e, rs)
 #(t1, e1, rs1) = parseComma rs
@@ -60,6 +61,48 @@ parseFArg r
 |(isNothing t) = (Nothing, e, rs)
 #(t1, t2) = fromJust t
 =(Just (FA t1 t2), e, rs)
+
+parseVarDecls_ :: [TokenOnLine] -> (Maybe [VarDecl], [String], [TokenOnLine])
+parseVarDecls_ r // VarDecl*
+#(t, e, rs) = parseVarDecl r
+|(isNothing t) = (Just [], [], r)// At this point backtracing is easier
+#(t1, e1, rs) = parseVarDecls_ rs
+=(Just [fromJust t:fromJust t1], e1 ++ e, rs)
+
+parseVarDecl :: [TokenOnLine] -> (Maybe VarDecl, [String], [TokenOnLine])
+parseVarDecl r
+#(t, e, rs) = parseType r ~># parseId ~> parseKAssign ~># ParseExp ~> ParseSemicolon
+|(isNothing t) =  (Nothing, e, rs) ~>. cantParse (hd r) "VarDecl"
+= (Nothing, [], r)
+
+ParseExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+ParseExp r // TBD
+= (Nothing, [], r)
+
+parseStmts :: [TokenOnLine] -> (Maybe [Stmt], [String], [TokenOnLine])
+parseStmts r // Stmt+
+#(t, e, rs) = parseStmt r
+|(isNothing t) = (Nothing, e, rs)
+#(t1, e1, rs) = parseStmts rs
+|(isNothing t1) = (Just [fromJust t], e, rs)
+=(Just [fromJust t: fromJust t1], e, rs)
+
+parseStmt :: [TokenOnLine] -> (Maybe Stmt, [String], [TokenOnLine])
+parseStmt [{token = CBClose}:rs] // TBD
+=(Nothing, [], rs)
+parseStmt [_:rs] // TBD
+=(Just Return, [], rs)
+parseStmt [] = endOfFileError
+
+ParseSemicolon :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+ParseSemicolon [{token = Semicolon}: rs] = (Just True, [], rs)
+ParseSemicolon [r: rs] = cantParse r "';'" rs
+ParseSemicolon [] = endOfFileError
+
+parseKAssign :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseKAssign [{token = KAssign}: rs] = (Just True, [], rs)
+parseKAssign [r: rs] = cantParse r "'='" rs
+parseKAssign [] = endOfFileError
 
 parseComma :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
 parseComma [{token = Comma}: rs] = (Just True, [], rs)
@@ -85,7 +128,6 @@ parseCBClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
 parseCBClose [{token = CBClose}: rs] = (Just True, [], rs)
 parseCBClose [r: rs] = cantParse r "'}'" rs
 parseCBClose [] = endOfFileError
-
 
 parseId :: [TokenOnLine] -> (Maybe Id, [String], [TokenOnLine])
 parseId [{token = Identifier s}: rs] = (Just (PId s), [], rs)
