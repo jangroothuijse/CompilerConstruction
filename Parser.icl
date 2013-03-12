@@ -29,7 +29,7 @@ parseType :: [TokenOnLine] -> (Maybe Type, [String], [TokenOnLine])
 parseType [{token = KInt}: rs] = (Just TInt, [], rs)
 parseType [{token = KBool}: rs] = (Just PBool, [], rs)
 parseType [{token = Popen}: rs] // A tupel
-#(t, e, rs) = parseType rs ~> parseComma #> parseType ~> parsePClose
+#(t, e, rs) = parseType rs ~> parseComma ~># parseType ~> parsePClose
 |(isNothing t) = (Nothing, e, rs)
 #(t1, t2) = fromJust t
 = (Just (TTup (t1, t2)), e, rs)
@@ -56,8 +56,8 @@ parsePClose [] = endOfFileError
 endOfFileError = (Nothing, ["Unexpected end of file"], [])
 cantParse {line = l} e rs = (Nothing, ["Can't parse line " +++ (toString l) +++ ", expected " +++ e], rs)
 
-(#>) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe (a, b), [String], [TokenOnLine])
-(#>) (t, e, rs) p2
+(~>#) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe (a, b), [String], [TokenOnLine])
+(~>#) (t, e, rs) p2
 |(isNothing t) = (Nothing, e, rs)
 #(t2, e2, rs) = p2 rs
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
