@@ -28,19 +28,36 @@ parseRetDecl r
 parseType :: [TokenOnLine] -> (Maybe Type, [String], [TokenOnLine])
 parseType [{token = KInt}: rs] = (Just TInt, [], rs)
 parseType [{token = KBool}: rs] = (Just PBool, [], rs)
-parseType [{token = Popen}: rs]
-#(t1, e, rs) = parseType rs
-|(isNothing t1) = (Nothing, e, rs)
-|(isComma (hd rs))
-	#(t2, e2, rs) = parseType (tl rs)
-	|(isNothing t2) = (Nothing, e ++ e2, rs)
-	= (Just (TTup (fromJust t1, fromJust t2)), e ++ e2, rs)
-=(Nothing, ["Can't parse line " +++ (toLineString (hd rs)) +++ ", expected ','": e], rs)
-
+parseType [{token = Popen}: rs] // A tupel
+#(t, e, rs) = parseType rs ~> parseComma #> parseType ~> parsePClose
+|(isNothing t) = (Nothing, e, rs)
+#(t1, t2) = fromJust t
+= (Just (TTup (t1, t2)), e, rs)
 parseType [{line = l}:rs] = (Nothing, ["Can't parse line " +++ (toString l) +++ ", expected Type"], rs)
 parseType [] = (Nothing, ["Unexpected end of file"], [])
 
-isComma {token = Comma} = True
-isComma _ = False
+parseComma :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseComma [{token = Comma}: rs] = (Just True, [], rs)
+parseComma [{line = l}: rs] = (Nothing, ["Can't parse line " +++ (toLineString rs) +++ ", expected ','"], rs)
+parseComma [] = (Nothing, ["Unexpected end of file"], [])
 
-toLineString {line = l} = toString l
+parsePClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parsePClose [{token = PClose}: rs] = (Just True, [], rs)
+parsePClose [{line = l}: rs] = (Nothing, ["Can't parse line " +++ (toLineString rs) +++ ", expected ','"], rs)
+parsePClose [] = (Nothing, ["Unexpected end of file"], [])
+
+(~>) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe a, [String], [TokenOnLine])
+(~>) (t, e, rs) p2
+|(isNothing t) = (Nothing, e, rs)
+#(t2, e2, rs) = p2 rs
+|(isNothing t2) = (Nothing, e2 ++ e, rs)
+=(t, e ++ e2, rs)
+
+(#>) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe (a, b), [String], [TokenOnLine])
+(#>) (t, e, rs) p2
+|(isNothing t) = (Nothing, e, rs)
+#(t2, e2, rs) = p2 rs
+|(isNothing t2) = (Nothing, e2 ++ e, rs)
+=(Just (fromJust t, fromJust t2), e2 ++ e, rs)
+
+toLineString [{line = l}:_] = toString l

@@ -1,6 +1,7 @@
 definition module Parser
 
-import Tokenizer
+//import Tokenizer
+from Tokenizer import :: TokenOnLine
 import Result
 
 :: Prog = P [Decl]
