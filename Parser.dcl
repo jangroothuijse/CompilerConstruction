@@ -10,7 +10,7 @@ import Result
 :: FunDecl = Fun RetType Id [FArgs] [VarDecl] [Stmt]
 :: RetType = RT Type | PVoid
 :: Type = TInt | PBool | TTup (Type, Type) | TId String
-:: FArgs = FA Type Id [FArgs]
+:: FArgs = FA Type Id
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
 			| SFC FunCall | Return | Returne Exp
 :: Exp = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt | False | True | Brace Exp | EFC FunCall
