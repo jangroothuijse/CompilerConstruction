@@ -34,17 +34,17 @@ parseType [{token = Popen}: rs] // A tupel
 #(t1, t2) = fromJust t
 = (Just (TTup (t1, t2)), e, rs)
 parseType [{line = l}:rs] = (Nothing, ["Can't parse line " +++ (toString l) +++ ", expected Type"], rs)
-parseType [] = (Nothing, ["Unexpected end of file"], [])
+parseType [] = endOfFileError
 
 parseComma :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
 parseComma [{token = Comma}: rs] = (Just True, [], rs)
-parseComma [{line = l}: rs] = (Nothing, ["Can't parse line " +++ (toLineString rs) +++ ", expected ','"], rs)
-parseComma [] = (Nothing, ["Unexpected end of file"], [])
+parseComma [r: rs] = cantParse r "','" rs
+parseComma [] = endOfFileError
 
 parsePClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
 parsePClose [{token = PClose}: rs] = (Just True, [], rs)
-parsePClose [{line = l}: rs] = (Nothing, ["Can't parse line " +++ (toLineString rs) +++ ", expected ','"], rs)
-parsePClose [] = (Nothing, ["Unexpected end of file"], [])
+parsePClose [r: rs] = cantParse r "')'" rs
+parsePClose [] = endOfFileError
 
 (~>) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe a, [String], [TokenOnLine])
 (~>) (t, e, rs) p2
@@ -53,11 +53,12 @@ parsePClose [] = (Nothing, ["Unexpected end of file"], [])
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
 =(t, e ++ e2, rs)
 
+endOfFileError = (Nothing, ["Unexpected end of file"], [])
+cantParse {line = l} e rs = (Nothing, ["Can't parse line " +++ (toString l) +++ ", expected " +++ e], rs)
+
 (#>) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe (a, b), [String], [TokenOnLine])
 (#>) (t, e, rs) p2
 |(isNothing t) = (Nothing, e, rs)
 #(t2, e2, rs) = p2 rs
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
 =(Just (fromJust t, fromJust t2), e2 ++ e, rs)
-
-toLineString [{line = l}:_] = toString l
