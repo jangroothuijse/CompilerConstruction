@@ -15,7 +15,7 @@ parseProg [t:tl]
 #(r, e, tl) = parseRetDecl [t:tl]
 |(isNothing r) = (Nothing, e, tl)
 = (Just (P [F (Fun (fromJust r) (PId "temp") [] [] [])]), e, tl) // TBD choose between VarDecl or FunDecl
-//parseProg [{line = l}:rs] = (Nothing, ["Can't parse line " +++ (toString l)], rs)
+//parseProg [r:rs] = cantParse r "VarDecl or FunDecl" rs
 parseProg [] = (Nothing, [], [])
 
 parseRetDecl :: [TokenOnLine] -> (Maybe RetType, [String], [TokenOnLine])
@@ -33,7 +33,7 @@ parseType [{token = Popen}: rs] // A tupel
 |(isNothing t) = (Nothing, e, rs)
 #(t1, t2) = fromJust t
 = (Just (TTup (t1, t2)), e, rs)
-parseType [{line = l}:rs] = (Nothing, ["Can't parse line " +++ (toString l) +++ ", expected Type"], rs)
+parseType [r:rs] = cantParse r "Type" rs
 parseType [] = endOfFileError
 
 parseComma :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
