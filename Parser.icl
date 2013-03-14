@@ -40,7 +40,12 @@ parseDecl r=:[_:_]
 |(isNothing t) = (Nothing, e2 ++ e1 ++ e, rs) ~>. cantParse r "FunDecl"
 #((t3, t4), t5) = fromJust t
 =(Just (F (Fun t1 t2 t3 t4 t5)), e, rs)
+	where 
+	isPVoid :: RetType -> Bool
+	isPVoid PVoid = True
+	isPVoid _ = False
 parseDecl [] = (Nothing, [], [])
+
 
 parseRetDecl :: [TokenOnLine] -> (Maybe RetType, [String], [TokenOnLine])
 parseRetDecl [{token = KVoid}: rs] = (Just PVoid, [], rs)
@@ -48,10 +53,6 @@ parseRetDecl r
 #(t, e, rs) = parseType r
 |(isNothing t) = (Nothing, e, rs)
 =(Just (RT (fromJust t)), e, rs)
-
-isPVoid :: RetType -> Bool
-isPVoid PVoid = True
-isPVoid _ = False
 
 parseType :: [TokenOnLine] -> (Maybe Type, [String], [TokenOnLine])
 parseType [{token = KInt}: rs] = (Just TInt, [], rs)
@@ -104,7 +105,8 @@ parseVarDecl :: [TokenOnLine] -> (Maybe VarDecl, [String], [TokenOnLine])
 parseVarDecl r
 #(t, e, rs) = parseType r ~># parseId ~> parseKAssign ~># parseExp ~> parseSemicolon
 |(isNothing t) =  (Nothing, e, rs) ~>. cantParse r "VarDecl"
-= (Nothing, [], r)
+#((t1, t2), t3) = fromJust t
+= (Just (VD t1 t2 t3), e, rs)
 
 parseStmts :: [TokenOnLine] -> (Maybe [Stmt], [String], [TokenOnLine])
 parseStmts r // Stmt+
@@ -145,23 +147,29 @@ parseStmt r=:[{token = KReturn}: rs]
 |(isNothing t) = (Nothing, e, rs)
 = (Just (Returne (fromJust t)), e, rs)
 parseStmt r=:[{token = Identifier _}: rs]
-#(t, e, rs) = parseId r ~> parseKAssign ~># parseExp ~> parseSemicolon
-|(isNothing t) = (Nothing, e, rs)
-#(t1, t2) = fromJust t
-=(Just (Ass t1 t2), e, rs)
+#(t, e, rs) = parseId r
+|(isPOpen rs)
+	#(t1, e1, rs) = parsePOpen rs ~>- parseActArgs ~> parsePClose ~> parseSemicolon
+	|(isNothing t1) = (Nothing, e, rs)
+	=(Just (SFC (FC (fromJust t) (fromJust t1))), e, rs) // TBD FunCall
+#(t1, e1, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon
+|(isNothing t) = (Nothing, e1 ++ e, rs)
+=(Just (Ass (fromJust t) (fromJust t1)), e1 ++ e, rs)
 parseStmt r=:[{token = CBClose}:_] // TBD, stop catchall
 =(Nothing, [], r)
 parseStmt [_:rs] // TBD, the catchall
 =(Just Return, [], rs)
 parseStmt [] = endOfFileError
 
-isKElse :: [TokenOnLine] -> Bool
-isKElse [{token = KElse}:_] = True
-isKElse _ = False
-
-isSemicolon :: [TokenOnLine] -> Bool
-isSemicolon [{token = Semicolon}:_] = True
-isSemicolon _ = False
+parseActArgs :: [TokenOnLine] -> (Maybe [ActArgs], [String], [TokenOnLine])
+parseActArgs r // ActArgs+
+#(t, e, rs) = parseExp r
+|(isNothing t) = (Nothing, e, rs)
+#(t1, e1, rs1) = parseComma rs
+|(isNothing t1) = (Just [AA (fromJust t)], e1 ++ e, rs)
+#(t1, e2, rs) = parseActArgs rs1
+|(isNothing t1) = (Nothing, e2 ++ e1 ++ e, rs)
+=(Just ([AA (fromJust t): fromJust t1]), e2 ++ e1 ++ e, rs)
 
 parseExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
 parseExp [{token = POpen}:rs]
@@ -226,6 +234,19 @@ parseId :: [TokenOnLine] -> (Maybe Id, [String], [TokenOnLine])
 parseId [{token = Identifier s}: rs] = (Just (PId s), [], rs)
 parseId [r: rs] = cantParse r "id" rs
 parseId [] = endOfFileError
+
+
+isKElse :: [TokenOnLine] -> Bool
+isKElse [{token = KElse}:_] = True
+isKElse _ = False
+
+isSemicolon :: [TokenOnLine] -> Bool
+isSemicolon [{token = Semicolon}:_] = True
+isSemicolon _ = False
+
+isPOpen :: [TokenOnLine] -> Bool
+isPOpen [{token = POpen}:_] = True
+isPOpen _ = False
 
 endOfFileError = (Nothing, ["Unexpected end of file"], [])
 
