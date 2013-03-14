@@ -22,7 +22,7 @@ parseDecls r // Decl+
 |(isNothing t) = (Nothing, e, rs)
 |(isEmpty rs) = (Just [fromJust t], e, rs) // Last Decl reached
 #(t1, e1, rs) = parseDecls rs
-|(isNothing t1) = (Just [fromJust t], e1 ++ e, rs) // return successfull tree TBD: Skip failed part and parse next function
+|(isNothing t1) = (Just [fromJust t], e1 ++ e, rs) // return successfull tree // TBD: Skip failed part and parse next function
 =(Just [fromJust t: fromJust t1], e1 ++ e, rs)
 
 parseDecl :: [TokenOnLine] -> (Maybe Decl, [String], [TokenOnLine])
@@ -112,9 +112,9 @@ parseStmts :: [TokenOnLine] -> (Maybe [Stmt], [String], [TokenOnLine])
 parseStmts r // Stmt+
 #(t, e, rs) = parseStmt r
 |(isNothing t) = (Nothing, e, rs)
-#(t1, e1, rs) = parseStmts rs
+#(t1, e1, rs1) = parseStmts rs
 |(isNothing t1) = (Just [fromJust t], e, rs)
-=(Just [fromJust t: fromJust t1], e, rs)
+=(Just [fromJust t: fromJust t1], e1 ++ e, rs1)
 
 parseStmt :: [TokenOnLine] -> (Maybe Stmt, [String], [TokenOnLine])
 parseStmt [{token = CBOpen}:rs] // Block
@@ -146,19 +146,16 @@ parseStmt r=:[{token = KReturn}: rs]
 #(t, e, rs) = parseExp rs ~> parseSemicolon
 |(isNothing t) = (Nothing, e, rs)
 = (Just (Returne (fromJust t)), e, rs)
-parseStmt r=:[{token = Identifier _}: rs]
+parseStmt r=:[{token = Identifier _}: rs] // Funcall or Assign
 #(t, e, rs) = parseId r
 |(isPOpen rs)
-	#(t1, e1, rs) = parsePOpen rs ~>- parseActArgs ~> parsePClose ~> parseSemicolon
+	#(t1, e1, rs) = parsePOpen rs ~>- parseActArgs ~> parsePClose ~> parseSemicolon // Funcall
 	|(isNothing t1) = (Nothing, e, rs)
-	=(Just (SFC (FC (fromJust t) (fromJust t1))), e, rs) // TBD FunCall
-#(t1, e1, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon
+	=(Just (SFC (FC (fromJust t) (fromJust t1))), e, rs)
+#(t1, e1, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon // Assing
 |(isNothing t) = (Nothing, e1 ++ e, rs)
 =(Just (Ass (fromJust t) (fromJust t1)), e1 ++ e, rs)
-parseStmt r=:[{token = CBClose}:_] // TBD, stop catchall
-=(Nothing, [], r)
-parseStmt [_:rs] // TBD, the catchall
-=(Just Return, [], rs)
+parseStmt [r:rs] = cantParse r "Stmt" rs
 parseStmt [] = endOfFileError
 
 parseActArgs :: [TokenOnLine] -> (Maybe [ActArgs], [String], [TokenOnLine])
