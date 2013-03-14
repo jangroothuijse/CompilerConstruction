@@ -5,7 +5,7 @@ import StdMaybe
 import Result
 
 :: TokenOnLine = { token :: Token, line :: Int }
-:: Token = Popen | PClose | CBOpen | CBClose | SBOpen | SBClose | Comma | Semicolon
+:: Token = POpen | PClose | CBOpen | CBClose | SBOpen | SBClose | Comma | Semicolon
 		 | Identifier String | Integer Int | Op Operator
 		 | KIf | KElse | KWhile | KReturn
 		 | KVoid | KInt | KBool

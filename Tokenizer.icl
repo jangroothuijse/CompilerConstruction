@@ -92,7 +92,7 @@ tokens = [
 		symbol "Void" KVoid, symbol "Int" KInt, symbol "Bool" KBool, 
 			
 		// patentheses, curly brackets, square brackets
-		symbol "(" Popen, symbol ")" PClose, symbol "{" CBOpen, symbol "}" CBClose, symbol "[" SBOpen, symbol "]" SBClose, 
+		symbol "(" POpen, symbol ")" PClose, symbol "{" CBOpen, symbol "}" CBClose, symbol "[" SBOpen, symbol "]" SBClose, 
 		// interpunction
 		symbol "," Comma, symbol ";" Semicolon,
 	

@@ -7,7 +7,7 @@ prettyPrint :: (Result [TokenOnLine]) -> String
 prettyPrint {result = [{token = x}:xs]} = " " +++ (p x) +++ (prettyPrint {result = xs, errors = []})
 where
 	p :: Token -> String
-	p Popen = "("
+	p POpen = "("
 	p PClose = ")"
 	p CBOpen = "{\n"
 	p CBClose = "\n}\n"

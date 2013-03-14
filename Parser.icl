@@ -30,7 +30,7 @@ parseDecl r=:[_:_]
 #(t, e, rs) = parseRetDecl r ~># parseId
 |(isNothing t) = (Nothing, e, rs) ~>. cantParse r "VarDecl or FunDecl"
 #(t1, t2) = fromJust t
-#(t, e1, rs1) = parsePopen rs
+#(t, e1, rs1) = parsePOpen rs
 |(isNothing t) // VarDecl
 	|(isPVoid t1) = cantParse r "FunDecl" rs1
 	#(t3, e2, rs) = parseKAssign rs ~>#- ParseExp ~> ParseSemicolon
@@ -56,7 +56,7 @@ isPVoid _ = False
 parseType :: [TokenOnLine] -> (Maybe Type, [String], [TokenOnLine])
 parseType [{token = KInt}: rs] = (Just TInt, [], rs)
 parseType [{token = KBool}: rs] = (Just PBool, [], rs)
-parseType [{token = Popen}: rs] // A tupel
+parseType [{token = POpen}: rs] // A tupel
 #(t, e, rs) = parseType rs ~> parseComma ~># parseType ~> parsePClose
 |(isNothing t) = (Nothing, e, rs)
 #(t1, t2) = fromJust t
@@ -146,10 +146,10 @@ parseComma [{token = Comma}: rs] = (Just True, [], rs)
 parseComma [r: rs] = cantParse r "','" rs
 parseComma [] = endOfFileError
 
-parsePopen :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
-parsePopen [{token = Popen}: rs] = (Just True, [], rs)
-parsePopen [r: rs] = cantParse r "'('" rs
-parsePopen [] = endOfFileError
+parsePOpen :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parsePOpen [{token = POpen}: rs] = (Just True, [], rs)
+parsePOpen [r: rs] = cantParse r "'('" rs
+parsePOpen [] = endOfFileError
 
 parsePClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
 parsePClose [{token = PClose}: rs] = (Just True, [], rs)
