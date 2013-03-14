@@ -3,13 +3,14 @@ definition module Parser
 //import Tokenizer
 from Tokenizer import :: TokenOnLine
 import Result
+import StdMaybe
 
 :: Prog = P [Decl]
 :: Decl = V VarDecl | F FunDecl
 :: VarDecl  = VD Type Id Exp
 :: FunDecl = Fun RetType Id [FArgs] [VarDecl] [Stmt]
 :: RetType = RT Type | PVoid
-:: Type = TInt | PBool | TTup (Type, Type) | TId String
+:: Type = TInt | PBool | TTup (Type, Type) | TList Type | TId String
 :: FArgs = FA Type Id
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
 			| SFC FunCall | Return | Returne Exp
@@ -23,4 +24,4 @@ import Result
 
 :: Priority = PAll | PBlock | PStatement | PBrace
 
-parse :: (Result [TokenOnLine]) -> Result Prog
+parse :: (Result [TokenOnLine]) -> Result (Maybe Prog)
