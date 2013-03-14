@@ -33,10 +33,10 @@ parseDecl r=:[_:_]
 #(t, e1, rs1) = parsePOpen rs
 |(isNothing t) // VarDecl
 	|(isPVoid t1) = cantParse r "FunDecl" rs1
-	#(t3, e2, rs) = parseKAssign rs ~>#- ParseExp ~> ParseSemicolon
+	#(t3, e2, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon
 	#(RT t1) = t1
 	= (Just (V (VD t1 t2 (fromJust t3))), e2 ++ e1 ++ e, rs)
-#(t, e2, rs) = parseFArgs_ rs1 ~> parsePClose ~> parseCBOpen ~># parseVarDecls_ ~># parseStmts // FunDecl
+#(t, e2, rs) = parseFArgs_ rs1 ~> parsePClose ~> parseCBOpen ~># parseVarDecls_ ~># parseStmts ~> parseCBClose // FunDecl
 |(isNothing t) = (Nothing, e2 ++ e1 ++ e, rs) ~>. cantParse r "FunDecl"
 #((t3, t4), t5) = fromJust t
 =(Just (F (Fun t1 t2 t3 t4 t5)), e, rs)
@@ -63,7 +63,8 @@ parseType [{token = POpen}: rs] // A tupel
 =(Just (TTup (t1, t2)), e, rs)
 parseType r=:[{token = Identifier _}: rs]
 #(t, e, rs) = parseId r
-=(Just PBool, [], rs)
+|(isNothing t) = (Nothing, e, rs)
+=(Just (TId (fromJust t)), [], rs)
 parseType [{token = SBOpen}: rs] // A list
 #(t, e, rs) = parseType rs ~> parseSBClose
 |(isNothing t) = (Nothing, e, rs)
@@ -101,12 +102,8 @@ parseVarDecls_ r // VarDecl*
 
 parseVarDecl :: [TokenOnLine] -> (Maybe VarDecl, [String], [TokenOnLine])
 parseVarDecl r
-#(t, e, rs) = parseType r ~># parseId ~> parseKAssign ~># ParseExp ~> ParseSemicolon
+#(t, e, rs) = parseType r ~># parseId ~> parseKAssign ~># parseExp ~> parseSemicolon
 |(isNothing t) =  (Nothing, e, rs) ~>. cantParse r "VarDecl"
-= (Nothing, [], r)
-
-ParseExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
-ParseExp r // TBD
 = (Nothing, [], r)
 
 parseStmts :: [TokenOnLine] -> (Maybe [Stmt], [String], [TokenOnLine])
@@ -119,22 +116,70 @@ parseStmts r // Stmt+
 
 parseStmt :: [TokenOnLine] -> (Maybe Stmt, [String], [TokenOnLine])
 parseStmt [{token = CBOpen}:rs] // Block
-#(t, e, rs1) = parsePClose rs
+#(t, e, rs1) = parseCBClose rs
 |(isNothing t) // Block with statements
-	#(t, e, rs) = parseStmts rs
+	#(t, e, rs) = parseStmts rs ~> parseCBClose
 	|(isNothing t) = (Nothing, e, rs)
 	=(Just (Block (fromJust t)), e, rs)
 =(Just (Block []), e, rs1) // Empty block
-parseStmt [{token = CBClose}:rs] // TBD
-=(Nothing, [], rs)
-parseStmt [_:rs] // TBD
+parseStmt [{token = KIf}:rs]
+#(t, e, rs) = parsePOpen rs ~>- parseExp ~> parsePClose ~># parseStmt
+|(isNothing t) = (Nothing, e, rs)
+#(t1, t2) = fromJust t
+|(isKElse rs)
+	#(t, e1, rs) = parseKElse rs ~>- parseStmt
+	|(isNothing t) = (Nothing, e ++ e1, rs)
+	= (Just (Ife t1 t2 (fromJust t)), e1 ++ e, rs)
+=(Just (If t1 t2), e, rs)
+parseStmt [{token = KWhile}:rs]
+#(t, e, rs) = parsePOpen rs ~>- parseExp ~> parsePClose ~># parseStmt
+|(isNothing t) = (Nothing, e, rs)
+#(t1, t2) = fromJust t
+=(Just (While t1 t2), e, rs)
+parseStmt r=:[{token = KReturn}: rs]
+|(isSemicolon rs)
+	#(t, e, rs) = parseSemicolon rs
+	|(isNothing t) = (Nothing, e, rs)
+	= (Just Return, e, rs)
+#(t, e, rs) = parseExp rs ~> parseSemicolon
+|(isNothing t) = (Nothing, e, rs)
+= (Just (Returne (fromJust t)), e, rs)
+parseStmt r=:[{token = Identifier _}: rs]
+#(t, e, rs) = parseId r ~> parseKAssign ~># parseExp ~> parseSemicolon
+|(isNothing t) = (Nothing, e, rs)
+#(t1, t2) = fromJust t
+=(Just (Ass t1 t2), e, rs)
+parseStmt r=:[{token = CBClose}:_] // TBD, stop catchall
+=(Nothing, [], r)
+parseStmt [_:rs] // TBD, the catchall
 =(Just Return, [], rs)
 parseStmt [] = endOfFileError
 
-ParseSemicolon :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
-ParseSemicolon [{token = Semicolon}: rs] = (Just True, [], rs)
-ParseSemicolon [r: rs] = cantParse r "';'" rs
-ParseSemicolon [] = endOfFileError
+isKElse :: [TokenOnLine] -> Bool
+isKElse [{token = KElse}:_] = True
+isKElse _ = False
+
+isSemicolon :: [TokenOnLine] -> Bool
+isSemicolon [{token = Semicolon}:_] = True
+isSemicolon _ = False
+
+parseExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseExp [{token = POpen}:rs]
+#(t, e, rs) = parseExp rs ~> parsePClose
+|(isNothing t) = (Nothing, e, rs)
+=(Just (EBrace (fromJust t)), e, rs)
+parseExp r=:[{token = PClose}:rs] = (Just ETrue, [], r) // TBD stop catchall
+parseExp r=:[{token = Semicolon}:rs] = (Just ETrue, [], r) // TBD stop catchall
+parseExp r=:[{token = CBClose}:rs] = (Just ETrue, [], r) // TBD stop catchall
+parseExp [_:rs] // TBD the catchall
+#(t, e, rs) = parseExp rs
+= (Just ETrue, e, rs)
+parseExp [] = endOfFileError
+
+parseSemicolon :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseSemicolon [{token = Semicolon}: rs] = (Just True, [], rs)
+parseSemicolon [r: rs] = cantParse r "';'" rs
+parseSemicolon [] = endOfFileError
 
 parseKAssign :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
 parseKAssign [{token = KAssign}: rs] = (Just True, [], rs)
@@ -172,6 +217,11 @@ parseSBClose [{token = SBClose}: rs] = (Just True, [], rs)
 parseSBClose [r: rs] = cantParse r "']'" rs
 parseSBClose [] = endOfFileError
 
+parseKElse :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseKElse [{token = KElse}: rs] = (Just True, [], rs)
+parseKElse [r: rs] = cantParse r "'else'" rs
+parseKElse [] = endOfFileError
+
 parseId :: [TokenOnLine] -> (Maybe Id, [String], [TokenOnLine])
 parseId [{token = Identifier s}: rs] = (Just (PId s), [], rs)
 parseId [r: rs] = cantParse r "id" rs
@@ -201,8 +251,8 @@ instance cantParse TokenOnLine
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
 =(Just (fromJust t, fromJust t2), e2 ++ e, rs)
 
-(~>#-) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe b, [String], [TokenOnLine])
-(~>#-) (t, e, rs) p2
+(~>-) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe b, [String], [TokenOnLine])
+(~>-) (t, e, rs) p2
 |(isNothing t) = (Nothing, e, rs)
 #(t2, e2, rs) = p2 rs
 |(isNothing t2) = (Nothing, e2 ++ e, rs)

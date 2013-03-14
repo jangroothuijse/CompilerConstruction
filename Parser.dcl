@@ -10,11 +10,11 @@ import StdMaybe
 :: VarDecl  = VD Type Id Exp
 :: FunDecl = Fun RetType Id [FArgs] [VarDecl] [Stmt]
 :: RetType = RT Type | PVoid
-:: Type = TInt | PBool | TTup (Type, Type) | TList Type | TId String
+:: Type = TInt | PBool | TTup (Type, Type) | TList Type | TId Id
 :: FArgs = FA Type Id
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
 			| SFC FunCall | Return | Returne Exp
-:: Exp = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt | False | True | Brace Exp | EFC FunCall
+:: Exp = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt | EFalse | ETrue | EBrace Exp | EFC FunCall
 			| EBlock | Tup Exp Exp
 :: FunCall = FC Id [ActArgs]
 :: ActArgs = AA Exp
