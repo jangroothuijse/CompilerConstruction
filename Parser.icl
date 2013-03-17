@@ -278,17 +278,10 @@ parseFactor x = parseIdAndCall x
 
 parseIdAndCall :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
 parseIdAndCall [{token = Identifier name}:rs] = case rs of
-	[{token = POpen}:rrs]	= if (isJust args) (Just (EFC (FC (PId name) (fromJust args))), e, rrrs) (Nothing, e, rrrs)
-	where
-		(args, e, rrrs) = parseActArgs rrs [] []
-		parseActArgs :: [TokenOnLine] [ActArgs] [String] -> (Maybe [ActArgs], [String], [TokenOnLine])
-		parseActArgs x args errors
-		# (t, e, xs) 		= parseConsExp x
-		| not (isJust t)	= (Nothing, ["Could not parse function arguments on line " +++ (toString (hd x).line)], xs)
-		= case xs of 
-			[{token = Comma}:xxs]	= parseActArgs xxs [AA (fromJust t) :args] (e ++ errors)
-			[{token = PClose}:xss]	= (Just args, errors, xss)
-			_						= (Nothing, ["Could not parse function arguments on line " +++ (toString (hd x).line)], xs)
+	[{token = POpen}:rrs]
+	#(t, e,rs) = parsePOpen rs ~>- parseActArgs_ ~> parsePClose
+	|(isNothing t) = (Nothing, e, rs)
+	= (Just (EFC (FC (PId name) (fromJust t))), e, rs)
 	_						= (Just (I (PId name)), [], rs)		// ID
 parseIdAndCall x = (Nothing, ["Failed to parse expression on line " +++ (toString (hd x).line)], x)
  
