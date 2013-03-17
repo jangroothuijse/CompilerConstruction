@@ -280,10 +280,12 @@ parseFactor [{token = Integer z}:rs] = (Just (EInt z), [], rs)
 parseFactor [{token = KTrue}:rs] = (Just ETrue, [], rs)
 parseFactor [{token = KFalse}:rs] = (Just ETrue, [], rs)
 parseFactor [{token = POpen}:rs] // Parentheses AND Tuples...
-# 	(t, e, rs)		= parseConsExp rs
+# 	(t, e, rs)		= parseExp rs
 |	isJust t		= case rs of 
-	[{token = Comma}:rrs] 	= if (isJust t2) (Just (Tup (fromJust t) (fromJust t2)), e ++ e2, rrrs) (Nothing, e ++ e2, rrrs)
-	where (t2, e2, rrrs) = parseConsExp rrs
+	[{token = Comma}:rrs] = case r.token of
+		PClose	= if (isJust t2) (Just (Tup (fromJust t) (fromJust t2)), e ++ e2, rrrs) (Nothing, e ++ e2, rrrs)
+		x = (Nothing, e ++ e2 ++ ["Expected tuple closing parenthesis"], rrrs)
+	where (t2, e2, [r:rrrs]) = parseExp rrs
 	[{token = PClose}:rrs] 	= (t, e, rrs)
 	_						= (Nothing, ["Failed to parse expression on line " +++ (toString (hd rs).line)], rs)
 =	(t, e, rs)
