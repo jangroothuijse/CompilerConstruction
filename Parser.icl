@@ -149,7 +149,7 @@ parseStmt r=:[{token = KReturn}: rs]
 parseStmt r=:[{token = Identifier _}: rs] // Funcall or Assign
 #(t, e, rs) = parseId r
 |(isPOpen rs)
-	#(t1, e1, rs) = parsePOpen rs ~>- parseActArgs ~> parsePClose ~> parseSemicolon // Funcall
+	#(t1, e1, rs) = parsePOpen rs ~>- parseActArgs_ ~> parsePClose ~> parseSemicolon // Funcall
 	|(isNothing t1) = (Nothing, e, rs)
 	=(Just (SFC (FC (fromJust t) (fromJust t1))), e, rs)
 #(t1, e1, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon // Assing
@@ -157,6 +157,10 @@ parseStmt r=:[{token = Identifier _}: rs] // Funcall or Assign
 =(Just (Ass (fromJust t) (fromJust t1)), e1 ++ e, rs)
 parseStmt [r:rs] = cantParse r "Stmt" rs
 parseStmt [] = endOfFileError
+
+parseActArgs_ :: [TokenOnLine] -> (Maybe [ActArgs], [String], [TokenOnLine])
+parseActArgs_ r=:[{token = PClose}: _] = (Just [], [], r) // ActArgs*
+parseActArgs_ r = parseActArgs r
 
 parseActArgs :: [TokenOnLine] -> (Maybe [ActArgs], [String], [TokenOnLine])
 parseActArgs r // ActArgs+
