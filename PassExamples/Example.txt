@@ -35,7 +35,7 @@ Void main()
 		if (facN != facl(n) || facN != facL(n))
 		{
 			print (n : FacN : facl(n) : facL(n) : []);
-			ok False;
+			ok = False;
 		}
 		n = n + 1;
 	}
