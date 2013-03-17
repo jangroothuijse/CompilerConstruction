@@ -267,6 +267,9 @@ parseFactor [{token = POpen}:rs] // Parentheses AND Tuples...
 	[{token = PClose}:rrs] 	= (t, e, rrs)
 	_						= (Nothing, ["Failed to parse expression on line " +++ (toString (hd rs).line)], rs)
 =	(t, e, rs)
+parseFactor [{token = SBOpen}:rs] = case rs of 
+	[{token = SBClose}: rrs]	= (Just EBlock, [], rrs)
+	x							= (Nothing, ["Cannot parse expression"], x)
 parseFactor x = parseIdAndCall x
 
 parseIdAndCall :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
