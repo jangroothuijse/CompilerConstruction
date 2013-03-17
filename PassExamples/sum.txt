@@ -20,7 +20,7 @@ Int sum2([Int] l) {
 	}
 }
 
-[Int] main()
+Void main()
 {
 	print (sum([1:2:3:[]]));
 	print (sum1([1:2:3:[]]));
