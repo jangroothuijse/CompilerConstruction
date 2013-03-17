@@ -34,7 +34,7 @@ where
 	f :: [CharOnLine] Int -> Maybe ([CharOnLine], [TokenOnLine])
 	f [] i = Just ([], [{ token = Integer i, line = y.l }])
 	f xxs=:[x:xs] i
-	|	isDigit x.c = f xs (10 * (i + (digitToInt x.c)))
+	|	isDigit x.c = f xs ((10 * i + (digitToInt x.c)))
 	=	Just (xxs, [{ token = Integer i, line = y.l }])
 	
 tokenizeId :: [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
