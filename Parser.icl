@@ -189,12 +189,30 @@ parseExp = parseConsExp
 
 parseConsExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
 parseConsExp rs
-#	(t, e, rs)		= parseRelExp rs
+#	(t, e, rs)		= parseAndExp rs
 |	not (isJust t) 	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
 =	case rs of
 	[{token = Op Cons}:rs] = if (isJust t2) (Just (Op2 (fromJust t) PCons (fromJust t2)), e ++ e2, rrs) (Nothing, e ++ e2, rrs)
 	where (t2, e2, rrs) = parseConsExp rs
 	_					= (t, e, rs)
+
+parseAndExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseAndExp rs
+#	(t, e, rs) 		= parseOrExp rs
+|	isNothing t		= (Nothing, e, rs)
+=	case rs of
+	[{token = Op And}:rrs]	= if (isJust t2) (Just (Op2 (fromJust t) PAnd (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+	where (t2, e2, rs2) = parseAndExp rrs
+	_				= (t, e, rs)
+	
+parseOrExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseOrExp rs
+#	(t, e, rs) 		= parseRelExp rs
+|	isNothing t		= (Nothing, e, rs)
+=	case rs of
+	[{token = Op Or}:rrs]	= if (isJust t2) (Just (Op2 (fromJust t) POr (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+	where (t2, e2, rs2) = parseOrExp rrs
+	_				= (t, e, rs)
 
 parseRelExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
 parseRelExp rs
@@ -225,7 +243,6 @@ parseSum rs
 	[{token = Op op}:rrs] = case op of
 		Plus	= emitOperator PPlus
 		Min		= emitOperator PMin
-		Or		= emitOperator POr
 		_ 		= (t, e, rs)
 	where
 		(t2, e2, rs2) = parseSum rrs
@@ -243,7 +260,6 @@ parseTerm rs
 		Mul		= emitOperator PMul
 		Div		= emitOperator PDiv
 		Mod		= emitOperator PMod
-		And		= emitOperator PAnd
 		_ 		= (t, e, rs)
 	where
 		(t2, e2, rs2) = parseTerm rrs
