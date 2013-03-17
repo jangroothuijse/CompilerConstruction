@@ -14,14 +14,19 @@ import StdMaybe
 :: FArgs = FA Type Id
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
 			| SFC FunCall | Return | Returne Exp
-:: Exp = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt | EFalse | ETrue | EBrace Exp | EFC FunCall
+:: Exp = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt Int | EFalse | ETrue | EBrace Exp | EFC FunCall
 			| EBlock | Tup Exp Exp
 :: FunCall = FC Id [ActArgs]
 :: ActArgs = AA Exp
-:: Op2 = PPlus | PMin | PMul | PDiv | PMod | PEq | PLT | PGT | PLTE | PGTE | PNEq | PAnd | POr
-:: Op1 = PCons | PNot
+:: Op2 = PPlus | PMin | PMul | PDiv | PMod | PEq | PLT | PGT | PLTE | PGTE | PNEq | PAnd | POr | PCons
+:: Op1 = PNot | PNeg
 :: Id = PId String
 
 :: Priority = PAll | PBlock | PStatement | PBrace
 
 parse :: (Result [TokenOnLine]) -> Result (Maybe Prog)
+
+
+(~>) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe a, [String], [TokenOnLine])
+
+parsePClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])

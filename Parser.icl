@@ -168,19 +168,123 @@ parseActArgs r // ActArgs+
 |(isNothing t1) = (Nothing, e2 ++ e1 ++ e, rs)
 =(Just ([AA (fromJust t): fromJust t1]), e2 ++ e1 ++ e, rs)
 
-parseExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
-parseExp [{token = POpen}:rs]
-#(t, e, rs) = parseExp rs ~> parsePClose
-|(isNothing t) = (Nothing, e, rs)
-=(Just (EBrace (fromJust t)), e, rs)
-parseExp r=:[{token = PClose}:rs] = (Just ETrue, [], r) // TBD stop catchall
-parseExp r=:[{token = Semicolon}:rs] = (Just ETrue, [], r) // TBD stop catchall
-parseExp r=:[{token = CBClose}:rs] = (Just ETrue, [], r) // TBD stop catchall
-parseExp [_:rs] // TBD the catchall
-#(t, e, rs) = parseExp rs
-= (Just ETrue, e, rs)
-parseExp [] = endOfFileError
+/* 
+ * ConsExp = RelExp ConsExp`
+ * ConsExp = : ConsExp | lamda
+ * RelExp = Exp RelExp` | (RelExp)
+ * RelExp` = == RelExp | < RelExp | > RelExp | <= RelExp | >= RelExp | != RelExp | lamda
+ * Exp = Term Exp`
+ * Exp` = + Exp | - Exp | lamda
+ * Term = Factor Term`
+ * Term` = * Term | / Term | % Term | lamda
+ * Factor = ! Factor | - Factor | Num | True | False | Id | FunCall
+ */
+ 
+parseExp :: ([TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine]))
+parseExp = parseConsExp
 
+parseConsExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseConsExp rs
+#	(t, e, rs)		= parseRelExp rs
+|	not (isJust t) 	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
+=	case rs of
+	[{token = Op Cons}:rs] = if (isJust t2) (Just (Op2 (fromJust t) PCons (fromJust t2)), e ++ e2, rrs) (Nothing, e ++ e2, rrs)
+	where (t2, e2, rrs) = parseConsExp rs
+	_					= (t, e, rs)
+
+parseRelExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseRelExp rs
+#	(t, e, rs) 		= parseSum rs
+|	not (isJust t) 	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
+#	exp1 			= fromJust t
+= 	case rs of
+	[{token = Op op}:rrs] = case op of
+		Eq	= emitOperator PEq
+		LT	= emitOperator PLT
+		GT	= emitOperator PGT
+		LTE	= emitOperator PLTE
+		GTE = emitOperator PGTE
+		NEq = emitOperator PNEq
+		_ 	= (t, e, rs)
+	where
+		(t2, e2, rs2) = parseRelExp rrs
+		emitOperator :: Op2 -> (Maybe Exp, [String], [TokenOnLine])
+		emitOperator operator = if (isJust t2) (Just (Op2 exp1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+	_	=	(t, e, rs)
+
+parseSum :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseSum rs
+#	(t, e, rs)		= parseTerm rs
+|	not (isJust t)	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
+#	term1			= fromJust t
+=	case rs of
+	[{token = Op op}:rrs] = case op of
+		Plus	= emitOperator PPlus
+		Min		= emitOperator PMin
+		Or		= emitOperator POr
+		_ 		= (t, e, rs)
+	where
+		(t2, e2, rs2) = parseSum rrs
+		emitOperator :: Op2 -> (Maybe Exp, [String], [TokenOnLine])
+		emitOperator operator = if (isJust t2) (Just (Op2 term1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+	_	=	(t, e, rs)	
+
+parseTerm :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseTerm rs
+#	(t, e, rs)		= parseFactor rs
+|	not (isJust t)	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
+#	fact1			= fromJust t
+=	case rs of
+	[{token = Op op}:rrs] = case op of
+		Mul		= emitOperator PMul
+		Div		= emitOperator PDiv
+		Mod		= emitOperator PMod
+		And		= emitOperator PAnd
+		_ 		= (t, e, rs)
+	where
+		(t2, e2, rs2) = parseTerm rrs
+		emitOperator :: Op2 -> (Maybe Exp, [String], [TokenOnLine])
+		emitOperator operator = if (isJust t2) (Just (Op2 fact1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+	_	=	(t, e, rs)	
+	
+parseFactor :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseFactor [{token = Op Not}:rs]
+#	(t, e, rs)		= parseFactor rs
+|	isJust t		= (Just (Op1 PNot (fromJust t)), e, rs)
+					= (Nothing, ["Expression expect on line " +++ (toString (hd rs).line):e], rs)
+parseFactor [{token = Op Min}:rs]
+#	(t, e, rs)		= parseFactor rs
+|	isJust t		= (Just (Op1 PNeg (fromJust t)), e, rs)
+					= (Nothing, ["Expression expect on line " +++ (toString (hd rs).line):e], rs)
+parseFactor [{token = Integer z}:rs] = (Just (EInt z), [], rs)
+parseFactor [{token = KTrue}:rs] = (Just ETrue, [], rs)
+parseFactor [{token = KFalse}:rs] = (Just ETrue, [], rs)
+parseFactor [{token = POpen}:rs] // Parentheses AND Tuples...
+# 	(t, e, rs)		= parseConsExp rs
+|	isJust t		= case rs of 
+	[{token = Comma}:rrs] 	= if (isJust t2) (Just (Tup (fromJust t) (fromJust t2)), e ++ e2, rrrs) (Nothing, e ++ e2, rrrs)
+	where (t2, e2, rrrs) = parseConsExp rrs
+	[{token = PClose}:rrs] 	= (t, e, rrs)
+	_						= (Nothing, ["Failed to parse expression on line " +++ (toString (hd rs).line)], rs)
+=	(t, e, rs)
+parseFactor x = parseIdAndCall x
+
+parseIdAndCall :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseIdAndCall [{token = Identifier name}:rs] = case rs of
+	[{token = POpen}:rrs]	= if (isJust args) (Just (EFC (FC (PId name) (fromJust args))), e, rrrs) (Nothing, e, rrrs)
+	where
+		(args, e, rrrs) = parseActArgs rrs [] []
+		parseActArgs :: [TokenOnLine] [ActArgs] [String] -> (Maybe [ActArgs], [String], [TokenOnLine])
+		parseActArgs x args errors
+		# (t, e, xs) 		= parseConsExp x
+		| not (isJust t)	= (Nothing, ["Could not parse function arguments on line " +++ (toString (hd x).line)], xs)
+		= case xs of 
+			[{token = Comma}:xxs]	= parseActArgs xxs [AA (fromJust t) :args] (e ++ errors)
+			[{token = PClose}:xss]	= (Just args, errors, xss)
+			_						= (Nothing, ["Could not parse function arguments on line " +++ (toString (hd x).line)], xs)
+	_						= (Just (I (PId name)), [], rs)		// ID
+parseIdAndCall x = (Nothing, ["Failed to parse expression on line " +++ (toString (hd x).line)], x)
+ 
 parseSemicolon :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
 parseSemicolon [{token = Semicolon}: rs] = (Just True, [], rs)
 parseSemicolon [r: rs] = cantParse r "';'" rs
