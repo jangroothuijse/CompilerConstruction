@@ -101,7 +101,7 @@ tokens = [
 		symbol "==" (Op Eq), symbol "<=" (Op LTE),  symbol ">=" (Op GTE), symbol ">=" (Op GTE), symbol "!=" (Op NEq),
 		symbol "<" (Op LT), symbol ">" (Op GT),
 		// 	Logical
-		symbol "&&" (Op And), symbol "||" (Op Or),		
+		symbol "&&" (Op And), symbol "||" (Op Or), symbol "!" (Op Not),	
 		// 	Arithmic
 		symbol "+" (Op Plus), symbol "-" (Op Min), symbol "*" (Op Mul), symbol "/" (Op Div), symbol "%" (Op Mod), 
 		symbol ":" (Op Cons),
