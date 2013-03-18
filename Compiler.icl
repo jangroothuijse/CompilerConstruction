@@ -22,5 +22,6 @@ Start world
 #   (succes, file, world)   = fopen filename FReadText world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # tok = (tokenizer (toLines file))
-=   (tok, prettyPrint tok, parse tok)
+# ast = parse tok
+=   (tok, prettyPrint tok, ast, pretty 0 (fromJust ast.result))
 
