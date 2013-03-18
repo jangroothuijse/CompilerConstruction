@@ -59,7 +59,7 @@ notSeperated = implode ""
 class pretty a :: Int a -> String
 
 instance pretty Prog
-where pretty _ (P decls) = foldl (+++) "" [(pretty 0 d) +++ "\n\n" \\ d <- decls]
+where pretty _ (P decls) = foldl (+++) "" [(pretty 0 d) +++ "\n" \\ d <- decls]
 
 instance pretty Decl
 where 
@@ -74,12 +74,12 @@ where pretty n (Fun retType name arguments vars stmts) = (toString retType) +++ 
 		toString name +++ "(" +++ (commaSeperated arguments) +++ ") {\n"
 		 +++ (notSeperated (map (pretty (n+1)) vars))
 		 +++ (notSeperated (map (pretty (n+1)) stmts))
-		 +++ "\n}\n"
+		 +++ "}\n"
 		 		 
 instance pretty Stmt
 where 
-	pretty n (Block stmts) = (tabs n) +++ "{\n" +++ (notSeperated (map (pretty (n+1)) stmts)) +++ (tabs n) +++ "}\n"
-	pretty n (If e s) = (tabs n) +++ "if (" +++ (toString e) +++ ") {\n" +++ (tabs n) +++ (pretty (n+1) s)  +++ (tabs n) +++ "}\n"
+	pretty n (Block stmts) = (notSeperated (map (pretty (n)) stmts))
+	pretty n (If e s) = (tabs n) +++ "if (" +++ (toString e) +++ ") {\n" +++ (pretty (n+1) s)  +++ (tabs n) +++ "}\n"
 	pretty n (Ife e s1 s2) = (tabs n) +++ "if (" +++ (toString e) +++ ") {\n" +++ (pretty (n+1) s1) +++ (tabs n) +++ "} else {\n" +++ (pretty (n+1) s2) +++ (tabs n) +++ "}\n"
 	pretty n (While e s) = (tabs n) +++ "while (" +++ (toString e) +++ ") {\n" +++ (pretty (n+1) s) +++ (tabs n) +++ "}\n"
 	pretty n (Ass i e) = (tabs n) +++ (toString i) +++ " = " +++ (toString e) +++ ";\n"
