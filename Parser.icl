@@ -286,7 +286,7 @@ parseFactor [{token = POpen}:rs] // Parentheses AND Tuples...
 		PClose	= if (isJust t2) (Just (Tup (fromJust t) (fromJust t2)), e ++ e2, rrrs) (Nothing, e ++ e2, rrrs)
 		x = (Nothing, e ++ e2 ++ ["Expected tuple closing parenthesis"], rrrs)
 	where (t2, e2, [r:rrrs]) = parseExp rrs
-	[{token = PClose}:rrs] 	= (t, e, rrs)
+	[{token = PClose}:rrs] 	= (Just (EBrace (fromJust t)), e, rrs)
 	_						= (Nothing, ["Failed to parse expression on line " +++ (toString (hd rs).line)], rs)
 =	(t, e, rs)
 parseFactor [{token = SBOpen}:rs] = case rs of 
