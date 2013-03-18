@@ -48,7 +48,7 @@ where
 	p _ = abort "unknown token"
 prettyPrint _ = ""
 
-tabs n = {'\t' \\ i <- [0..n] }
+tabs n = {'\t' \\ i <- [1..n] }
 implode glue [] = ""
 implode glue [x] = (toString x)
 implode glue [x:xs] = (toString x) +++ glue +++ implode glue xs
@@ -79,13 +79,13 @@ where pretty n (Fun retType name arguments vars stmts) = (toString retType) +++ 
 instance pretty Stmt
 where 
 	pretty n (Block stmts) = (tabs n) +++ "{\n" +++ (notSeperated (map (pretty (n+1)) stmts)) +++ (tabs n) +++ "}\n"
-	pretty n (If e s) = (tabs n) +++ "if (" +++ (toString e) +++ (pretty (n+1) s) +++ "\n"
-	pretty n (Ife e s1 s2) = (tabs n) +++ "if (" +++ (toString e) +++ (pretty (n+1) s1) +++ " else " +++ (pretty (n+1) s2) +++ "\n"
-	pretty n (While e s) = (tabs n) +++ "while (" +++ (toString e) +++ (pretty (n+1) s) +++ "\n"
-	pretty n (Ass i e) = (tabs n) +++ (toString i) +++ " = " +++ (toString e) +++ ";"
-	pretty n (SFC fun) = (tabs n) +++ (toString fun)
-	pretty n (Return) = (tabs n) +++ "return;"
-	pretty n (Returne e) = (tabs n) +++ "return " +++ (toString e) +++ ";"
+	pretty n (If e s) = (tabs n) +++ "if (" +++ (toString e) +++ ") {\n" +++ (tabs n) +++ (pretty (n+1) s)  +++ (tabs n) +++ "}\n"
+	pretty n (Ife e s1 s2) = (tabs n) +++ "if (" +++ (toString e) +++ ") {\n" +++ (pretty (n+1) s1) +++ (tabs n) +++ "} else {\n" +++ (pretty (n+1) s2) +++ (tabs n) +++ "}\n"
+	pretty n (While e s) = (tabs n) +++ "while (" +++ (toString e) +++ ") {\n" +++ (pretty (n+1) s) +++ (tabs n) +++ "}\n"
+	pretty n (Ass i e) = (tabs n) +++ (toString i) +++ " = " +++ (toString e) +++ ";\n"
+	pretty n (SFC fun) = (tabs n) +++ (toString fun) +++ ";\n"
+	pretty n (Return) = (tabs n) +++ "return;\n"
+	pretty n (Returne e) = (tabs n) +++ "return " +++ (toString e) +++ ";\n"
 
 instance toString FArgs
 where toString (FA type iden) = (toString type) +++ " " +++ (toString iden)
