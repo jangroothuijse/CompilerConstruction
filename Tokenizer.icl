@@ -4,15 +4,15 @@ import StdEnv
 import StdMaybe
 import Result
 
-:: Tokenizer :== [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
-:: CharOnLine = { c :: Char, l :: Int }
+:: Tokenizer :== [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+:: CharMeta = { c :: Char, l :: Int, col :: Int }
 
 symbol :: String Token -> Tokenizer
 symbol s token = f 
 where 
 	sizeS = size s
 	f input=:[y:ys]
-	|	hasString	= Just ((drop sizeS input), [{ token = token, line = y.l }])
+	|	hasString	= Just ((drop sizeS input), [{ token = token, line = y.l, column = y.col }])
 					= Nothing
 	where 
 		hasString = length [1 \\ x <-: s & y <- input | x == y.c] == sizeS	
@@ -28,28 +28,28 @@ where
 
 
 // Accept int, only stops when digits end.
-tokenizeInteger :: [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
+tokenizeInteger :: [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
 tokenizeInteger yys=:[y:ys] = if (isDigit y.c) (f yys 0) Nothing
 where
-	f :: [CharOnLine] Int -> Maybe ([CharOnLine], [TokenOnLine])
-	f [] i = Just ([], [{ token = Integer i, line = y.l }])
+	f :: [CharMeta] Int -> Maybe ([CharMeta], [TokenOnLine])
+	f [] i = Just ([], [{ token = Integer i, line = y.l, column = y.col }])
 	f xxs=:[x:xs] i
 	|	isDigit x.c = f xs ((10 * i + (digitToInt x.c)))
-	=	Just (xxs, [{ token = Integer i, line = y.l }])
+	=	Just (xxs, [{ token = Integer i, line = y.l, column = y.col }])
 	
-tokenizeId :: [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
+tokenizeId :: [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
 tokenizeId [y:ys] = if (isAlpha y.c) (f {y.c} ys) Nothing
 where
-	f :: String [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
-	f name [] = Just ([], [{ token = Identifier name, line = y.l }])
+	f :: String [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+	f name [] = Just ([], [{ token = Identifier name, line = y.l, column = y.col }])
 	f name xxs=:[x:xs]
 	|	isAlphanum x.c = f (name +++ {x.c}) xs
-	=	Just (xxs, [{ token = Identifier name, line = y.l }])
+	=	Just (xxs, [{ token = Identifier name, line = y.l,column = y.col }])
 	
-tokenizeFail :: [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
+tokenizeFail :: [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
 tokenizeFail input=:[x:xs] = abort ("\nFailed to tokenize: \"" +++ { x.c \\ x <- (take 5 input) } +++ "\" on line " +++ (toString x.l) +++ "\n")
 
-tokenizeComments :: [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
+tokenizeComments :: [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
 tokenizeComments [x:xs] = if (x.c == '/') (tc xs) Nothing
 where
 	tc [] = Nothing
@@ -66,11 +66,11 @@ where
 
 
 		
-tokenize :: [Tokenizer] [CharOnLine] -> Maybe ([CharOnLine], [TokenOnLine])
+tokenize :: [Tokenizer] [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
 tokenize tokens [] = Just ([], [])
 tokenize tokens input = Just (f (hd [x \\ t <- tokens, x <- [t input] | isJust x]))
 where
-	f :: (Maybe ([CharOnLine], [TokenOnLine])) -> ([CharOnLine], [TokenOnLine])
+	f :: (Maybe ([CharMeta], [TokenOnLine])) -> ([CharMeta], [TokenOnLine])
 	f (Just (moreInput, t)) = ([], t ++ moreTokens)
 	where 
 		(_, moreTokens) = fromJust (tokenize tokens moreInput)	
@@ -116,10 +116,10 @@ tokens = [
 tokenizer :: (Result [String]) -> Result [TokenOnLine]
 tokenizer {result = r} = {result = (snd o fromJust o (tokenize tokens) o (toCharsInLine)) r, errors = []}
 
-toCharsInLine :: [String] -> [CharOnLine]
+toCharsInLine :: [String] -> [CharMeta]
 toCharsInLine strings = f 1 strings
 where
 	f _ [] = []
-	f i [x:xs] = [{ c = y, l = i} \\ y <-: x] ++ f (i+1) xs
+	f i [x:xs] = [{ c = y, l = i, col= j} \\ y <-: x & j <- [0..]] ++ f (i+1) xs
 
 Start = tokenizer {result = ["/*1*/{ } *\n",  "/** dont care */ 3\n", "if (foo == True)\n", "\n", "bar = 34;\n", "else bar = 302a;  // this should not show up"], errors = []}
