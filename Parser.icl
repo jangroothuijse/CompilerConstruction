@@ -3,20 +3,20 @@ implementation module Parser
 import Result
 import Tokenizer
 
-parse :: (Result [TokenOnLine]) -> Result (Maybe Prog)
+parse :: (Result [Token]) -> Result (Maybe Prog)
 parse {result = r}
 #(p, err, y) = parseProg r
 |(isNothing p) = {result = Nothing, errors = err}
 ={result = p, errors = err}
 
-parseProg :: [TokenOnLine] -> (Maybe Prog, [String], [TokenOnLine])
+parseProg :: [Token] -> (Maybe Prog, [String], [Token])
 parseProg r=:[_:_]
 #(t, e, rs) = parseDecls r
 |(isNothing t) = (Nothing, e, rs)
 = (Just (P (fromJust t)), e, rs)
 parseProg [] = endOfFileError
 
-parseDecls :: [TokenOnLine] -> (Maybe [Decl], [String], [TokenOnLine])
+parseDecls :: [Token] -> (Maybe [Decl], [String], [Token])
 parseDecls r // Decl+
 #(t, e, rs) = parseDecl r
 |(isNothing t) = (Nothing, e, rs)
@@ -25,7 +25,7 @@ parseDecls r // Decl+
 |(isNothing t1) = (Just [fromJust t], e1 ++ e, rs) // return successfull tree // TBD: Skip failed part and parse next function
 =(Just [fromJust t: fromJust t1], e1 ++ e, rs)
 
-parseDecl :: [TokenOnLine] -> (Maybe Decl, [String], [TokenOnLine])
+parseDecl :: [Token] -> (Maybe Decl, [String], [Token])
 parseDecl r=:[_:_]
 #(t, e, rs) = parseRetDecl r ~># parseId
 |(isNothing t) = (Nothing, e, rs) ~>. cantParse r "VarDecl or FunDecl"
@@ -47,14 +47,14 @@ parseDecl r=:[_:_]
 parseDecl [] = (Nothing, [], [])
 
 
-parseRetDecl :: [TokenOnLine] -> (Maybe RetType, [String], [TokenOnLine])
+parseRetDecl :: [Token] -> (Maybe RetType, [String], [Token])
 parseRetDecl [{token = KVoid}: rs] = (Just PVoid, [], rs)
 parseRetDecl r
 #(t, e, rs) = parseType r
 |(isNothing t) = (Nothing, e, rs)
 =(Just (RT (fromJust t)), e, rs)
 
-parseType :: [TokenOnLine] -> (Maybe Type, [String], [TokenOnLine])
+parseType :: [Token] -> (Maybe Type, [String], [Token])
 parseType [{token = KInt}: rs] = (Just TInt, [], rs)
 parseType [{token = KBool}: rs] = (Just PBool, [], rs)
 parseType [{token = POpen}: rs] // A tupel
@@ -73,11 +73,11 @@ parseType [{token = SBOpen}: rs] // A list
 parseType [r:rs] = cantParse r "Type" rs
 parseType [] = endOfFileError
 
-parseFArgs_ :: [TokenOnLine] -> (Maybe [FArgs], [String], [TokenOnLine])
+parseFArgs_ :: [Token] -> (Maybe [FArgs], [String], [Token])
 parseFArgs_ r=:[{token = PClose}: _] = (Just [], [], r) // FArgs*
 parseFArgs_ r = parseFArgs r
 
-parseFArgs :: [TokenOnLine] -> (Maybe [FArgs], [String], [TokenOnLine])
+parseFArgs :: [Token] -> (Maybe [FArgs], [String], [Token])
 parseFArgs r // FArgs+
 #(t, e, rs) = parseFArg r
 |(isNothing t) = (Nothing, e, rs)
@@ -87,28 +87,28 @@ parseFArgs r // FArgs+
 |(isNothing t1)= (Nothing, e2 ++ e1 ++ e, rs)
 =(Just [fromJust t:fromJust t1], e2 ++ e1 ++ e, rs)
 
-parseFArg :: [TokenOnLine] -> (Maybe FArgs, [String], [TokenOnLine])
+parseFArg :: [Token] -> (Maybe FArgs, [String], [Token])
 parseFArg r
 #(t, e, rs) = parseType r ~># parseId
 |(isNothing t) = (Nothing, e, rs)
 #(t1, t2) = fromJust t
 =(Just (FA t1 t2), e, rs)
 
-parseVarDecls_ :: [TokenOnLine] -> (Maybe [VarDecl], [String], [TokenOnLine])
+parseVarDecls_ :: [Token] -> (Maybe [VarDecl], [String], [Token])
 parseVarDecls_ r // VarDecl*
 #(t, e, rs) = parseVarDecl r
 |(isNothing t) = (Just [], [], r)// At this point backtracing is easier
 #(t1, e1, rs) = parseVarDecls_ rs
 =(Just [fromJust t:fromJust t1], e1 ++ e, rs)
 
-parseVarDecl :: [TokenOnLine] -> (Maybe VarDecl, [String], [TokenOnLine])
+parseVarDecl :: [Token] -> (Maybe VarDecl, [String], [Token])
 parseVarDecl r
 #(t, e, rs) = parseType r ~># parseId ~> parseKAssign ~># parseExp ~> parseSemicolon
 |(isNothing t) =  (Nothing, e, rs) ~>. cantParse r "VarDecl"
 #((t1, t2), t3) = fromJust t
 = (Just (VD t1 t2 t3), e, rs)
 
-parseStmts :: [TokenOnLine] -> (Maybe [Stmt], [String], [TokenOnLine])
+parseStmts :: [Token] -> (Maybe [Stmt], [String], [Token])
 parseStmts r // Stmt+
 #(t, e, rs) = parseStmt r
 |(isNothing t) = (Nothing, e, rs)
@@ -116,7 +116,7 @@ parseStmts r // Stmt+
 |(isNothing t1) = (Just [fromJust t], e, rs)
 =(Just [fromJust t: fromJust t1], e1 ++ e, rs1)
 
-parseStmt :: [TokenOnLine] -> (Maybe Stmt, [String], [TokenOnLine])
+parseStmt :: [Token] -> (Maybe Stmt, [String], [Token])
 parseStmt [{token = CBOpen}:rs] // Block
 #(t, e, rs1) = parseCBClose rs
 |(isNothing t) // Block with statements
@@ -158,11 +158,11 @@ parseStmt r=:[{token = Identifier _}: rs] // Funcall or Assign
 parseStmt [r:rs] = cantParse r "Stmt" rs
 parseStmt [] = endOfFileError
 
-parseActArgs_ :: [TokenOnLine] -> (Maybe [ActArgs], [String], [TokenOnLine])
+parseActArgs_ :: [Token] -> (Maybe [ActArgs], [String], [Token])
 parseActArgs_ r=:[{token = PClose}: _] = (Just [], [], r) // ActArgs*
 parseActArgs_ r = parseActArgs r
 
-parseActArgs :: [TokenOnLine] -> (Maybe [ActArgs], [String], [TokenOnLine])
+parseActArgs :: [Token] -> (Maybe [ActArgs], [String], [Token])
 parseActArgs r // ActArgs+
 #(t, e, rs) = parseExp r
 |(isNothing t) = (Nothing, e, rs)
@@ -184,10 +184,10 @@ parseActArgs r // ActArgs+
  * Factor = ! Factor | - Factor | Num | True | False | Id | FunCall
  */
  
-parseExp :: ([TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine]))
+parseExp :: ([Token] -> (Maybe Exp, [String], [Token]))
 parseExp = parseConsExp
 
-parseConsExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseConsExp :: [Token] -> (Maybe Exp, [String], [Token])
 parseConsExp rs
 #	(t, e, rs)		= parseAndExp rs
 |	not (isJust t) 	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
@@ -196,7 +196,7 @@ parseConsExp rs
 	where (t2, e2, rrs) = parseConsExp rs
 	_					= (t, e, rs)
 
-parseAndExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseAndExp :: [Token] -> (Maybe Exp, [String], [Token])
 parseAndExp rs
 #	(t, e, rs) 		= parseOrExp rs
 |	isNothing t		= (Nothing, e, rs)
@@ -205,7 +205,7 @@ parseAndExp rs
 	where (t2, e2, rs2) = parseAndExp rrs
 	_				= (t, e, rs)
 	
-parseOrExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseOrExp :: [Token] -> (Maybe Exp, [String], [Token])
 parseOrExp rs
 #	(t, e, rs) 		= parseRelExp rs
 |	isNothing t		= (Nothing, e, rs)
@@ -214,7 +214,7 @@ parseOrExp rs
 	where (t2, e2, rs2) = parseOrExp rrs
 	_				= (t, e, rs)
 
-parseRelExp :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseRelExp :: [Token] -> (Maybe Exp, [String], [Token])
 parseRelExp rs
 #	(t, e, rs) 		= parseSum rs
 |	not (isJust t) 	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
@@ -230,11 +230,11 @@ parseRelExp rs
 		_ 	= (t, e, rs)
 	where
 		(t2, e2, rs2) = parseRelExp rrs
-		emitOperator :: Op2 -> (Maybe Exp, [String], [TokenOnLine])
+		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
 		emitOperator operator = if (isJust t2) (Just (Op2 exp1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)
 
-parseSum :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseSum :: [Token] -> (Maybe Exp, [String], [Token])
 parseSum rs
 #	(t, e, rs)		= parseTerm rs
 |	not (isJust t)	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
@@ -246,11 +246,11 @@ parseSum rs
 		_ 		= (t, e, rs)
 	where
 		(t2, e2, rs2) = parseSum rrs
-		emitOperator :: Op2 -> (Maybe Exp, [String], [TokenOnLine])
+		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
 		emitOperator operator = if (isJust t2) (Just (Op2 term1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)	
 
-parseTerm :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseTerm :: [Token] -> (Maybe Exp, [String], [Token])
 parseTerm rs
 #	(t, e, rs)		= parseFactor rs
 |	not (isJust t)	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
@@ -263,11 +263,11 @@ parseTerm rs
 		_ 		= (t, e, rs)
 	where
 		(t2, e2, rs2) = parseTerm rrs
-		emitOperator :: Op2 -> (Maybe Exp, [String], [TokenOnLine])
+		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
 		emitOperator operator = if (isJust t2) (Just (Op2 fact1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)	
 	
-parseFactor :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseFactor :: [Token] -> (Maybe Exp, [String], [Token])
 parseFactor [{token = Op Not}:rs]
 #	(t, e, rs)		= parseFactor rs
 |	isJust t		= (Just (Op1 PNot (fromJust t)), e, rs)
@@ -294,7 +294,7 @@ parseFactor [{token = SBOpen}:rs] = case rs of
 	x							= (Nothing, ["Cannot parse expression"], x)
 parseFactor x = parseIdAndCall x
 
-parseIdAndCall :: [TokenOnLine] -> (Maybe Exp, [String], [TokenOnLine])
+parseIdAndCall :: [Token] -> (Maybe Exp, [String], [Token])
 parseIdAndCall [{token = Identifier name}:rs] = case rs of
 	[{token = POpen}:rrs]
 	#(t, e,rs) = parsePOpen rs ~>- parseActArgs_ ~> parsePClose
@@ -303,102 +303,102 @@ parseIdAndCall [{token = Identifier name}:rs] = case rs of
 	_						= (Just (I (PId name)), [], rs)		// ID
 parseIdAndCall x = (Nothing, ["Failed to parse expression on line " +++ (toString (hd x).line)], x)
  
-parseSemicolon :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseSemicolon :: [Token] -> (Maybe Bool, [String], [Token])
 parseSemicolon [{token = Semicolon}: rs] = (Just True, [], rs)
 parseSemicolon [r: rs] = cantParse r "';'" rs
 parseSemicolon [] = endOfFileError
 
-parseKAssign :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseKAssign :: [Token] -> (Maybe Bool, [String], [Token])
 parseKAssign [{token = KAssign}: rs] = (Just True, [], rs)
 parseKAssign [r: rs] = cantParse r "'='" rs
 parseKAssign [] = endOfFileError
 
-parseComma :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseComma :: [Token] -> (Maybe Bool, [String], [Token])
 parseComma [{token = Comma}: rs] = (Just True, [], rs)
 parseComma [r: rs] = cantParse r "','" rs
 parseComma [] = endOfFileError
 
-parsePOpen :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parsePOpen :: [Token] -> (Maybe Bool, [String], [Token])
 parsePOpen [{token = POpen}: rs] = (Just True, [], rs)
 parsePOpen [r: rs] = cantParse r "'('" rs
 parsePOpen [] = endOfFileError
 
-parsePClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parsePClose :: [Token] -> (Maybe Bool, [String], [Token])
 parsePClose [{token = PClose}: rs] = (Just True, [], rs)
 parsePClose [r: rs] = cantParse r "')'" rs
 parsePClose [] = endOfFileError
 
-parseCBOpen :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseCBOpen :: [Token] -> (Maybe Bool, [String], [Token])
 parseCBOpen [{token = CBOpen}: rs] = (Just True, [], rs)
 parseCBOpen [r: rs] = cantParse r "'{'" rs
 parseCBOpen [] = endOfFileError
 
-parseCBClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseCBClose :: [Token] -> (Maybe Bool, [String], [Token])
 parseCBClose [{token = CBClose}: rs] = (Just True, [], rs)
 parseCBClose [r: rs] = cantParse r "'}'" rs
 parseCBClose [] = endOfFileError
 
 
-parseSBClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseSBClose :: [Token] -> (Maybe Bool, [String], [Token])
 parseSBClose [{token = SBClose}: rs] = (Just True, [], rs)
 parseSBClose [r: rs] = cantParse r "']'" rs
 parseSBClose [] = endOfFileError
 
-parseKElse :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parseKElse :: [Token] -> (Maybe Bool, [String], [Token])
 parseKElse [{token = KElse}: rs] = (Just True, [], rs)
 parseKElse [r: rs] = cantParse r "'else'" rs
 parseKElse [] = endOfFileError
 
-parseId :: [TokenOnLine] -> (Maybe Id, [String], [TokenOnLine])
+parseId :: [Token] -> (Maybe Id, [String], [Token])
 parseId [{token = Identifier s}: rs] = (Just (PId s), [], rs)
 parseId [r: rs] = cantParse r "id" rs
 parseId [] = endOfFileError
 
 
-isKElse :: [TokenOnLine] -> Bool
+isKElse :: [Token] -> Bool
 isKElse [{token = KElse}:_] = True
 isKElse _ = False
 
-isSemicolon :: [TokenOnLine] -> Bool
+isSemicolon :: [Token] -> Bool
 isSemicolon [{token = Semicolon}:_] = True
 isSemicolon _ = False
 
-isPOpen :: [TokenOnLine] -> Bool
+isPOpen :: [Token] -> Bool
 isPOpen [{token = POpen}:_] = True
 isPOpen _ = False
 
 endOfFileError = (Nothing, ["Unexpected end of file"], [])
 
-class cantParse a :: a String [TokenOnLine] -> (Maybe b, [String], [TokenOnLine])
-instance cantParse [TokenOnLine]
+class cantParse a :: a String [Token] -> (Maybe b, [String], [Token])
+instance cantParse [Token]
 	where
 	cantParse [r:_] e rs = cantParse r e rs
-instance cantParse TokenOnLine
+instance cantParse Token
 	where
 	cantParse {line = l} e rs = (Nothing, ["Can't parse line " +++ (toString l) +++ ", expected " +++ e], rs)
 
-(~>) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe a, [String], [TokenOnLine])
+(~>) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
 (~>) (t, e, rs) p2
 |(isNothing t) = (Nothing, e, rs)
 #(t2, e2, rs) = p2 rs
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
 =(t, e ++ e2, rs)
 
-(~>#) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe (a, b), [String], [TokenOnLine])
+(~>#) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe (a, b), [String], [Token])
 (~>#) (t, e, rs) p2
 |(isNothing t) = (Nothing, e, rs)
 #(t2, e2, rs) = p2 rs
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
 =(Just (fromJust t, fromJust t2), e2 ++ e, rs)
 
-(~>-) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe b, [String], [TokenOnLine])
+(~>-) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe b, [String], [Token])
 (~>-) (t, e, rs) p2
 |(isNothing t) = (Nothing, e, rs)
 #(t2, e2, rs) = p2 rs
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
 =(t2, e ++ e2, rs)
 
-(~>.) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe a, [String], [TokenOnLine])
+(~>.) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
 (~>.) (t, e, rs) p2
 #(t2, e2, rs) = p2 rs
 =(t, e ++ e2, rs)

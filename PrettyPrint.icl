@@ -5,10 +5,10 @@ import Tokenizer
 import Parser
 import Result
 
-prettyPrint :: (Result [TokenOnLine]) -> String
+prettyPrint :: (Result [Token]) -> String
 prettyPrint {result = [{token = x}:xs]} = " " +++ (p x) +++ (prettyPrint {result = xs, errors = []})
 where
-	p :: Token -> String
+	p :: Symbol -> String
 	p POpen = "("
 	p PClose = ")"
 	p CBOpen = "{\n"

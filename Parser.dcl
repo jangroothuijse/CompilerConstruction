@@ -1,7 +1,7 @@
 definition module Parser
 
 //import Tokenizer
-from Tokenizer import :: TokenOnLine
+from Tokenizer import :: Token
 import Result
 import StdMaybe
 
@@ -24,9 +24,9 @@ import StdMaybe
 
 :: Priority = PAll | PBlock | PStatement | PBrace
 
-parse :: (Result [TokenOnLine]) -> Result (Maybe Prog)
+parse :: (Result [Token]) -> Result (Maybe Prog)
 
 
-(~>) infixl 7 :: (Maybe a, [String], [TokenOnLine]) ([TokenOnLine] -> (Maybe b, [String], [TokenOnLine])) -> (Maybe a, [String], [TokenOnLine])
+(~>) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
 
-parsePClose :: [TokenOnLine] -> (Maybe Bool, [String], [TokenOnLine])
+parsePClose :: [Token] -> (Maybe Bool, [String], [Token])

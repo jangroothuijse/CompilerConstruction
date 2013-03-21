@@ -4,10 +4,10 @@ import StdEnv
 import StdMaybe
 import Result
 
-:: Tokenizer :== [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+:: Tokenizer :== [CharMeta] -> Maybe ([CharMeta], [Token])
 :: CharMeta = { c :: Char, l :: Int, col :: Int }
 
-symbol :: String Token -> Tokenizer
+symbol :: String Symbol -> Tokenizer
 symbol s token = f 
 where 
 	sizeS = size s
@@ -28,28 +28,28 @@ where
 
 
 // Accept int, only stops when digits end.
-tokenizeInteger :: [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+tokenizeInteger :: [CharMeta] -> Maybe ([CharMeta], [Token])
 tokenizeInteger yys=:[y:ys] = if (isDigit y.c) (f yys 0) Nothing
 where
-	f :: [CharMeta] Int -> Maybe ([CharMeta], [TokenOnLine])
+	f :: [CharMeta] Int -> Maybe ([CharMeta], [Token])
 	f [] i = Just ([], [{ token = Integer i, line = y.l, column = y.col }])
 	f xxs=:[x:xs] i
 	|	isDigit x.c = f xs ((10 * i + (digitToInt x.c)))
 	=	Just (xxs, [{ token = Integer i, line = y.l, column = y.col }])
 	
-tokenizeId :: [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+tokenizeId :: [CharMeta] -> Maybe ([CharMeta], [Token])
 tokenizeId [y:ys] = if (isAlpha y.c) (f {y.c} ys) Nothing
 where
-	f :: String [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+	f :: String [CharMeta] -> Maybe ([CharMeta], [Token])
 	f name [] = Just ([], [{ token = Identifier name, line = y.l, column = y.col }])
 	f name xxs=:[x:xs]
 	|	isAlphanum x.c = f (name +++ {x.c}) xs
 	=	Just (xxs, [{ token = Identifier name, line = y.l,column = y.col }])
 	
-tokenizeFail :: [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+tokenizeFail :: [CharMeta] -> Maybe ([CharMeta], [Token])
 tokenizeFail input=:[x:xs] = abort ("\nFailed to tokenize: \"" +++ { x.c \\ x <- (take 5 input) } +++ "\" on line " +++ (toString x.l) +++ "\n")
 
-tokenizeComments :: [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+tokenizeComments :: [CharMeta] -> Maybe ([CharMeta], [Token])
 tokenizeComments [x:xs] = if (x.c == '/') (tc xs) Nothing
 where
 	tc [] = Nothing
@@ -66,11 +66,11 @@ where
 
 
 		
-tokenize :: [Tokenizer] [CharMeta] -> Maybe ([CharMeta], [TokenOnLine])
+tokenize :: [Tokenizer] [CharMeta] -> Maybe ([CharMeta], [Token])
 tokenize tokens [] = Just ([], [])
 tokenize tokens input = Just (f (hd [x \\ t <- tokens, x <- [t input] | isJust x]))
 where
-	f :: (Maybe ([CharMeta], [TokenOnLine])) -> ([CharMeta], [TokenOnLine])
+	f :: (Maybe ([CharMeta], [Token])) -> ([CharMeta], [Token])
 	f (Just (moreInput, t)) = ([], t ++ moreTokens)
 	where 
 		(_, moreTokens) = fromJust (tokenize tokens moreInput)	
@@ -113,7 +113,7 @@ tokens = [
 		tokenizeFail
 	]
 	
-tokenizer :: (Result [String]) -> Result [TokenOnLine]
+tokenizer :: (Result [String]) -> Result [Token]
 tokenizer {result = r} = {result = (snd o fromJust o (tokenize tokens) o (toCharsInLine)) r, errors = []}
 
 toCharsInLine :: [String] -> [CharMeta]
