@@ -190,9 +190,9 @@ parseExp = parseConsExp
 parseConsExp :: [Token] -> (Maybe Exp, [String], [Token])
 parseConsExp rs
 #	(t, e, rs)		= parseAndExp rs
-|	not (isJust t) 	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
+|	not (isJust t) 	= (Nothing, e, rs) ~>. cantParse rs "ConsExpression"
 =	case rs of
-	[{token = Op Cons}:rs] = if (isJust t2) (Just (Op2 (fromJust t) PCons (fromJust t2)), e ++ e2, rrs) (Nothing, e ++ e2, rrs)
+	[{token = Op Cons}:rs] = if (isJust t2) (Just (Op2 (fromJust t) PCons (fromJust t2)), e2 ++ e, rrs) (Nothing, e2 ++ e, rrs)
 	where (t2, e2, rrs) = parseConsExp rs
 	_					= (t, e, rs)
 
@@ -201,7 +201,7 @@ parseAndExp rs
 #	(t, e, rs) 		= parseOrExp rs
 |	isNothing t		= (Nothing, e, rs)
 =	case rs of
-	[{token = Op And}:rrs]	= if (isJust t2) (Just (Op2 (fromJust t) PAnd (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+	[{token = Op And}:rrs]	= if (isJust t2) (Just (Op2 (fromJust t) PAnd (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
 	where (t2, e2, rs2) = parseAndExp rrs
 	_				= (t, e, rs)
 	
@@ -210,14 +210,14 @@ parseOrExp rs
 #	(t, e, rs) 		= parseRelExp rs
 |	isNothing t		= (Nothing, e, rs)
 =	case rs of
-	[{token = Op Or}:rrs]	= if (isJust t2) (Just (Op2 (fromJust t) POr (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+	[{token = Op Or}:rrs]	= if (isJust t2) (Just (Op2 (fromJust t) POr (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
 	where (t2, e2, rs2) = parseOrExp rrs
 	_				= (t, e, rs)
 
 parseRelExp :: [Token] -> (Maybe Exp, [String], [Token])
 parseRelExp rs
 #	(t, e, rs) 		= parseSum rs
-|	not (isJust t) 	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
+|	not (isJust t) 	= (Nothing, e, rs) ~>. cantParse rs "RelExpression"
 #	exp1 			= fromJust t
 = 	case rs of
 	[{token = Op op}:rrs] = case op of
@@ -231,13 +231,13 @@ parseRelExp rs
 	where
 		(t2, e2, rs2) = parseRelExp rrs
 		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
-		emitOperator operator = if (isJust t2) (Just (Op2 exp1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+		emitOperator operator = if (isJust t2) (Just (Op2 exp1 operator (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)
 
 parseSum :: [Token] -> (Maybe Exp, [String], [Token])
 parseSum rs
 #	(t, e, rs)		= parseTerm rs
-|	not (isJust t)	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
+|	not (isJust t)	= (Nothing, e, rs) ~>. cantParse rs "SumExpression"
 #	term1			= fromJust t
 =	case rs of
 	[{token = Op op}:rrs] = case op of
@@ -247,13 +247,13 @@ parseSum rs
 	where
 		(t2, e2, rs2) = parseSum rrs
 		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
-		emitOperator operator = if (isJust t2) (Just (Op2 term1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+		emitOperator operator = if (isJust t2) (Just (Op2 term1 operator (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)	
 
 parseTerm :: [Token] -> (Maybe Exp, [String], [Token])
 parseTerm rs
 #	(t, e, rs)		= parseFactor rs
-|	not (isJust t)	= (Nothing, ["Expression expected but not found on line " +++ (toString (hd rs).line):e], rs)
+|	not (isJust t)	= (Nothing, e, rs) ~>. cantParse rs "Term"
 #	fact1			= fromJust t
 =	case rs of
 	[{token = Op op}:rrs] = case op of
@@ -264,18 +264,18 @@ parseTerm rs
 	where
 		(t2, e2, rs2) = parseTerm rrs
 		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
-		emitOperator operator = if (isJust t2) (Just (Op2 fact1 operator (fromJust t2)), e ++ e2, rs2) (Nothing, e, rs)	
+		emitOperator operator = if (isJust t2) (Just (Op2 fact1 operator (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)	
 	
 parseFactor :: [Token] -> (Maybe Exp, [String], [Token])
 parseFactor [{token = Op Not}:rs]
 #	(t, e, rs)		= parseFactor rs
 |	isJust t		= (Just (Op1 PNot (fromJust t)), e, rs)
-					= (Nothing, ["Expression expect on line " +++ (toString (hd rs).line):e], rs)
+					= (Nothing, e, rs) ~>. cantParse rs "Factor"
 parseFactor [{token = Op Min}:rs]
 #	(t, e, rs)		= parseFactor rs
 |	isJust t		= (Just (Op1 PNeg (fromJust t)), e, rs)
-					= (Nothing, ["Expression expect on line " +++ (toString (hd rs).line):e], rs)
+					= (Nothing, e, rs) ~>. cantParse rs "Factor"
 parseFactor [{token = Integer z}:rs] = (Just (EInt z), [], rs)
 parseFactor [{token = KTrue}:rs] = (Just ETrue, [], rs)
 parseFactor [{token = KFalse}:rs] = (Just ETrue, [], rs)
@@ -283,15 +283,15 @@ parseFactor [{token = POpen}:rs] // Parentheses AND Tuples...
 # 	(t, e, rs)		= parseExp rs
 |	isJust t		= case rs of 
 	[{token = Comma}:rrs] = case r.token of
-		PClose	= if (isJust t2) (Just (Tup (fromJust t) (fromJust t2)), e ++ e2, rrrs) (Nothing, e ++ e2, rrrs)
-		x = (Nothing, e ++ e2 ++ ["Expected tuple closing parenthesis"], rrrs)
+		PClose	= if (isJust t2) (Just (Tup (fromJust t) (fromJust t2)), e2 ++ e, rrrs) (Nothing, e2 ++ e, rrrs)
+		x = (Nothing, e2 ++ e, rs) ~>. cantParse rs ")"
 	where (t2, e2, [r:rrrs]) = parseExp rrs
 	[{token = PClose}:rrs] 	= (Just (EBrace (fromJust t)), e, rrs)
-	_						= (Nothing, ["Failed to parse expression on line " +++ (toString (hd rs).line)], rs)
+	_						= (Nothing, e, rs) ~>. cantParse rs ")"
 =	(t, e, rs)
 parseFactor [{token = SBOpen}:rs] = case rs of 
 	[{token = SBClose}: rrs]	= (Just EBlock, [], rrs)
-	x							= (Nothing, ["Cannot parse expression"], x)
+	x							= cantParse rs "[]" rs
 parseFactor x = parseIdAndCall x
 
 parseIdAndCall :: [Token] -> (Maybe Exp, [String], [Token])
@@ -301,7 +301,7 @@ parseIdAndCall [{token = Identifier name}:rs] = case rs of
 	|(isNothing t) = (Nothing, e, rs)
 	= (Just (EFC (FC (PId name) (fromJust t))), e, rs)
 	_						= (Just (I (PId name)), [], rs)		// ID
-parseIdAndCall x = (Nothing, ["Failed to parse expression on line " +++ (toString (hd x).line)], x)
+parseIdAndCall x = cantParse x "Id or Call" x
  
 parseSemicolon :: [Token] -> (Maybe Bool, [String], [Token])
 parseSemicolon [{token = Semicolon}: rs] = (Just True, [], rs)
@@ -367,22 +367,26 @@ isPOpen :: [Token] -> Bool
 isPOpen [{token = POpen}:_] = True
 isPOpen _ = False
 
-endOfFileError = (Nothing, ["Unexpected end of file"], [])
+endOfFileError = ParseError "Unexpected end of file" []
 
 class cantParse a :: a String [Token] -> (Maybe b, [String], [Token])
 instance cantParse [Token]
 	where
 	cantParse [r:_] e rs = cantParse r e rs
+	cantParse _ e rs = ParseError ("Expected " +++ e) rs
 instance cantParse Token
 	where
-	cantParse {line = l} e rs = (Nothing, ["Can't parse line " +++ (toString l) +++ ", expected " +++ e], rs)
+	cantParse r e rs = ParseErrorLine r ("Expected " +++ e) rs
+
+ParseErrorLine {line = l, column = c} e rs = ParseError ("Line " +++ (toString l) +++ ":" +++ (toString c) +++ ". " +++ e) rs
+ParseError e rs = (Nothing, [e], rs)
 
 (~>) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
 (~>) (t, e, rs) p2
 |(isNothing t) = (Nothing, e, rs)
 #(t2, e2, rs) = p2 rs
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
-=(t, e ++ e2, rs)
+=(t, e2 ++ e, rs)
 
 (~>#) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe (a, b), [String], [Token])
 (~>#) (t, e, rs) p2
@@ -396,9 +400,9 @@ instance cantParse Token
 |(isNothing t) = (Nothing, e, rs)
 #(t2, e2, rs) = p2 rs
 |(isNothing t2) = (Nothing, e2 ++ e, rs)
-=(t2, e ++ e2, rs)
+=(t2, e2 ++ e, rs)
 
 (~>.) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
 (~>.) (t, e, rs) p2
 #(t2, e2, rs) = p2 rs
-=(t, e ++ e2, rs)
+=(t, e2 ++ e, rs)
