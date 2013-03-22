@@ -36,7 +36,7 @@ parseDecl r=:[_:_]
 #(t1, t2) = fromJust t
 #(t, e1, rs1) = parsePOpen rs
 |(isNothing t) // VarDecl
-	|(isPVoid t1) = cantParse r "FunDecl" rs1
+	|(isPVoid t1) = cantParse rs "FunDecl" rs1
 	#(t3, e2, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon
 	|(isNothing t3) = (Nothing, e2 ++ e1 ++ e, rs) ~>. findDeclEnd ~>. cantParse rs "VarDecl"
 	#(RT t1) = t1
@@ -53,9 +53,10 @@ parseDecl [] = (Nothing, [], [])
 
 findDeclEnd :: [Token] -> (Maybe Stmt, [String], [Token])
 findDeclEnd r=:[{token=CBOpen}:_] = parseStmt r // Parse this block
-findDeclEnd [{token=Semicolon}:rs] =  (Nothing, [], rs)
+findDeclEnd r=:[{token=CBClose}:rs] = (Nothing, [], rs)
+findDeclEnd [{token=Semicolon}:rs] = (Nothing, [], rs)
 findDeclEnd [_:rs] = findDeclEnd rs
-findDeclEnd _ = endOfFileError
+findDeclEnd _ = (Nothing, [], [])
 
 parseRetDecl :: [Token] -> (Maybe RetType, [String], [Token])
 parseRetDecl [{token = KVoid}: rs] = (Just PVoid, [], rs)
@@ -131,46 +132,46 @@ parseStmts r // Stmt+
 =(Just [fromJust t: fromJust t1], e1 ++ e, rs1)
 
 parseStmt :: [Token] -> (Maybe Stmt, [String], [Token])
-parseStmt [{token = CBOpen}:rs] // Block
+parseStmt r=:[{token = CBOpen}:rs] // Block
 #(t, e, rs1) = parseCBClose rs
 |(isNothing t) // Block with statements
 	#(t, e, rs) = parseStmts rs
-	|(isNothing t) = (Nothing, e, findCBClose rs) ~>. parseCBClose
+	|(isNothing t) = (Nothing, e, findCBClose r) ~>. parseCBClose
 	#(t1, e1, rs) =  parseCBClose rs
-	|(isNothing t1) = (Nothing, e1 ++ e, findCBClose rs)
+	|(isNothing t1) = (Nothing, e1 ++ e, findCBClose r)
 	=(Just (Block (fromJust t)), e1 ++ e, rs)
 =(Just (Block []), e, rs1) // Empty block
-parseStmt [{token = KIf}:rs]
+parseStmt r=:[{token = KIf}:rs]
 #(t, e, rs) = parsePOpen rs ~>- parseExp ~> parsePClose ~># parseStmt
-|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "If"
+|(isNothing t) = (Nothing, e, findSemicolonCB r) ~>. cantParse rs "If"
 #(t1, t2) = fromJust t
 |(isKElse rs)
 	#(t, e1, rs) = parseKElse rs ~>- parseStmt
-	|(isNothing t) = (Nothing, e ++ e1, findSemicolonCB rs) ~>. cantParse rs "If ... Else"
+	|(isNothing t) = (Nothing, e ++ e1, findSemicolonCB r) ~>. cantParse rs "If ... Else"
 	= (Just (Ife t1 t2 (fromJust t)), e1 ++ e, rs)
 =(Just (If t1 t2), e, rs)
-parseStmt [{token = KWhile}:rs]
+parseStmt r=:[{token = KWhile}:rs]
 #(t, e, rs) = parsePOpen rs ~>- parseExp ~> parsePClose ~># parseStmt
-|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "While"
+|(isNothing t) = (Nothing, e, findSemicolonCB r) ~>. cantParse rs "While"
 #(t1, t2) = fromJust t
 =(Just (While t1 t2), e, rs)
 parseStmt r=:[{token = KReturn}: rs]
 |(isSemicolon rs)
 	#(t, e, rs) = parseSemicolon rs
-	|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "Return"
+	|(isNothing t) = (Nothing, e, findSemicolonCB r) ~>. cantParse rs "Return"
 	= (Just Return, e, rs)
 #(t, e, rs) = parseExp rs ~> parseSemicolon
-|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "Return exp"
+|(isNothing t) = (Nothing, e, findSemicolonCB r) ~>. cantParse rs "Return exp"
 = (Just (Returne (fromJust t)), e, rs)
 parseStmt r=:[{token = Identifier _}: rs] // Funcall or Assign
 #(t, e, rs) = parseId r
-|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "This can't happen!"
+|(isNothing t) = (Nothing, e, findSemicolonCB r) ~>. cantParse rs "This can't happen!"
 |(isPOpen rs)
 	#(t1, e1, rs) = parsePOpen rs ~>- parseActArgs_ ~> parsePClose ~> parseSemicolon // Funcall
-	|(isNothing t1) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "Funcall"
+	|(isNothing t1) = (Nothing, e, findSemicolonCB r) ~>. cantParse rs "Funcall"
 	=(Just (SFC (FC (fromJust t) (fromJust t1))), e, rs)
 #(t1, e1, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon // Assing
-|(isNothing t1) = (Nothing, e1 ++ e, findSemicolonCB rs) ~>. cantParse rs "Assing"
+|(isNothing t1) = (Nothing, e1 ++ e, findSemicolonCB r) ~>. cantParse rs "Assing"
 =(Just (Ass (fromJust t) (fromJust t1)), e1 ++ e, rs)
 parseStmt r=:[_:_] = cantParse r (trace "hi" "Stmt") (findSemicolonCB r)
 parseStmt [] = endOfFileError
@@ -406,7 +407,7 @@ class cantParse a :: a String [Token] -> (Maybe b, [String], [Token])
 instance cantParse [Token]
 	where
 	cantParse [r:_] e rs = cantParse r e rs
-	cantParse _ e rs = ParseError ("Expected " +++ e) rs
+	cantParse _ e rs = ParseError ("Expected " +++ e +++ " at end of file") rs
 instance cantParse Token
 	where
 	cantParse r e rs = ParseErrorLine r ("Expected " +++ e) rs
