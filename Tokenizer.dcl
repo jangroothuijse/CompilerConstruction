@@ -12,4 +12,7 @@ import Result
 		 | KTrue | KFalse | KAssign
 :: Operator = Plus | Min | Mul | Div | Mod | Eq | LT | GT | LTE | GTE | NEq | And | Or | Cons | Not
 
+instance ==	Symbol
+instance == Operator
+
 tokenizer :: (Result [String]) -> Result [Token]

@@ -2,6 +2,7 @@ implementation module Parser
 
 import Result
 import Tokenizer
+import StdDebug
 
 parse :: (Result [Token]) -> Result (Maybe Prog)
 parse {result = r}
@@ -19,25 +20,29 @@ parseProg [] = endOfFileError
 parseDecls :: [Token] -> (Maybe [Decl], [String], [Token])
 parseDecls r // Decl+
 #(t, e, rs) = parseDecl r
-|(isNothing t) = (Nothing, e, rs)
-|(isEmpty rs) = (Just [fromJust t], e, rs) // Last Decl reached
+|(isEmpty rs)
+	|(isNothing t) = (Nothing, e, rs)
+	=(Just [fromJust t], e, rs) // Last Decl reached
+|(isNothing t)
+	=(Nothing, e, rs) ~>. parseDecls // Parse remaining after error. Ignore result.
 #(t1, e1, rs) = parseDecls rs
-|(isNothing t1) = (Just [fromJust t], e1 ++ e, rs) // return successfull tree // TBD: Skip failed part and parse next function
+|(isNothing t1) = (Nothing, e1 ++ e, rs) ~>. parseDecls
 =(Just [fromJust t: fromJust t1], e1 ++ e, rs)
 
 parseDecl :: [Token] -> (Maybe Decl, [String], [Token])
 parseDecl r=:[_:_]
 #(t, e, rs) = parseRetDecl r ~># parseId
-|(isNothing t) = (Nothing, e, rs) ~>. cantParse r "VarDecl or FunDecl"
+|(isNothing t) = (Nothing, e, rs) ~>. findDeclEnd ~>. cantParse rs "VarDecl or FunDecl"
 #(t1, t2) = fromJust t
 #(t, e1, rs1) = parsePOpen rs
 |(isNothing t) // VarDecl
 	|(isPVoid t1) = cantParse r "FunDecl" rs1
 	#(t3, e2, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon
+	|(isNothing t3) = (Nothing, e2 ++ e1 ++ e, rs) ~>. findDeclEnd ~>. cantParse rs "VarDecl"
 	#(RT t1) = t1
 	= (Just (V (VD t1 t2 (fromJust t3))), e2 ++ e1 ++ e, rs)
 #(t, e2, rs) = parseFArgs_ rs1 ~> parsePClose ~> parseCBOpen ~># parseVarDecls_ ~># parseStmts ~> parseCBClose // FunDecl
-|(isNothing t) = (Nothing, e2 ++ e1 ++ e, rs) ~>. cantParse r "FunDecl"
+|(isNothing t) = (Nothing, e2 ++ e1 ++ e, rs) ~>. findDeclEnd ~>. cantParse rs "FunDecl"
 #((t3, t4), t5) = fromJust t
 =(Just (F (Fun t1 t2 t3 t4 t5)), e, rs)
 	where 
@@ -46,6 +51,11 @@ parseDecl r=:[_:_]
 	isPVoid _ = False
 parseDecl [] = (Nothing, [], [])
 
+findDeclEnd :: [Token] -> (Maybe Stmt, [String], [Token])
+findDeclEnd r=:[{token=CBOpen}:_] = parseStmt r // Parse this block
+findDeclEnd [{token=Semicolon}:rs] =  (Nothing, [], rs)
+findDeclEnd [_:rs] = findDeclEnd rs
+findDeclEnd _ = endOfFileError
 
 parseRetDecl :: [Token] -> (Maybe RetType, [String], [Token])
 parseRetDecl [{token = KVoid}: rs] = (Just PVoid, [], rs)
@@ -59,16 +69,16 @@ parseType [{token = KInt}: rs] = (Just TInt, [], rs)
 parseType [{token = KBool}: rs] = (Just PBool, [], rs)
 parseType [{token = POpen}: rs] // A tupel
 #(t, e, rs) = parseType rs ~> parseComma ~># parseType ~> parsePClose
-|(isNothing t) = (Nothing, e, rs)
+|(isNothing t) = (Nothing, e, rs) ~>. cantParse rs "Type"
 #(t1, t2) = fromJust t
 =(Just (TTup (t1, t2)), e, rs)
 parseType r=:[{token = Identifier _}: rs]
 #(t, e, rs) = parseId r
-|(isNothing t) = (Nothing, e, rs)
+|(isNothing t) = (Nothing, e, rs) ~>. cantParse rs "Type"
 =(Just (TId (fromJust t)), [], rs)
 parseType [{token = SBOpen}: rs] // A list
 #(t, e, rs) = parseType rs ~> parseSBClose
-|(isNothing t) = (Nothing, e, rs)
+|(isNothing t) = (Nothing, e, rs) ~>. cantParse rs "Type"
 =(Just (TList (fromJust t)), e, rs)
 parseType [r:rs] = cantParse r "Type" rs
 parseType [] = endOfFileError
@@ -99,6 +109,7 @@ parseVarDecls_ r // VarDecl*
 #(t, e, rs) = parseVarDecl r
 |(isNothing t) = (Just [], [], r)// At this point backtracing is easier
 #(t1, e1, rs) = parseVarDecls_ rs
+|(isNothing t1) = (Nothing, e1 ++ e, rs)
 =(Just [fromJust t:fromJust t1], e1 ++ e, rs)
 
 parseVarDecl :: [Token] -> (Maybe VarDecl, [String], [Token])
@@ -111,7 +122,10 @@ parseVarDecl r
 parseStmts :: [Token] -> (Maybe [Stmt], [String], [Token])
 parseStmts r // Stmt+
 #(t, e, rs) = parseStmt r
-|(isNothing t) = (Nothing, e, rs)
+|(isEmpty rs) = (endOfFileError)
+|(isNothing t) // Stmt could not parse, parse next stmt.
+	|(isCBClose rs) = (Nothing, e, rs)
+	=(Nothing, e, rs) ~>. parseStmts
 #(t1, e1, rs1) = parseStmts rs
 |(isNothing t1) = (Just [fromJust t], e, rs)
 =(Just [fromJust t: fromJust t1], e1 ++ e, rs1)
@@ -120,43 +134,58 @@ parseStmt :: [Token] -> (Maybe Stmt, [String], [Token])
 parseStmt [{token = CBOpen}:rs] // Block
 #(t, e, rs1) = parseCBClose rs
 |(isNothing t) // Block with statements
-	#(t, e, rs) = parseStmts rs ~> parseCBClose
-	|(isNothing t) = (Nothing, e, rs)
-	=(Just (Block (fromJust t)), e, rs)
+	#(t, e, rs) = parseStmts rs
+	|(isNothing t) = (Nothing, e, findCBClose rs) ~>. parseCBClose
+	#(t1, e1, rs) =  parseCBClose rs
+	|(isNothing t1) = (Nothing, e1 ++ e, findCBClose rs)
+	=(Just (Block (fromJust t)), e1 ++ e, rs)
 =(Just (Block []), e, rs1) // Empty block
 parseStmt [{token = KIf}:rs]
 #(t, e, rs) = parsePOpen rs ~>- parseExp ~> parsePClose ~># parseStmt
-|(isNothing t) = (Nothing, e, rs)
+|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "If"
 #(t1, t2) = fromJust t
 |(isKElse rs)
 	#(t, e1, rs) = parseKElse rs ~>- parseStmt
-	|(isNothing t) = (Nothing, e ++ e1, rs)
+	|(isNothing t) = (Nothing, e ++ e1, findSemicolonCB rs) ~>. cantParse rs "If ... Else"
 	= (Just (Ife t1 t2 (fromJust t)), e1 ++ e, rs)
 =(Just (If t1 t2), e, rs)
 parseStmt [{token = KWhile}:rs]
 #(t, e, rs) = parsePOpen rs ~>- parseExp ~> parsePClose ~># parseStmt
-|(isNothing t) = (Nothing, e, rs)
+|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "While"
 #(t1, t2) = fromJust t
 =(Just (While t1 t2), e, rs)
 parseStmt r=:[{token = KReturn}: rs]
 |(isSemicolon rs)
 	#(t, e, rs) = parseSemicolon rs
-	|(isNothing t) = (Nothing, e, rs)
+	|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "Return"
 	= (Just Return, e, rs)
 #(t, e, rs) = parseExp rs ~> parseSemicolon
-|(isNothing t) = (Nothing, e, rs)
+|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "Return exp"
 = (Just (Returne (fromJust t)), e, rs)
 parseStmt r=:[{token = Identifier _}: rs] // Funcall or Assign
 #(t, e, rs) = parseId r
+|(isNothing t) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "This can't happen!"
 |(isPOpen rs)
 	#(t1, e1, rs) = parsePOpen rs ~>- parseActArgs_ ~> parsePClose ~> parseSemicolon // Funcall
-	|(isNothing t1) = (Nothing, e, rs)
+	|(isNothing t1) = (Nothing, e, findSemicolonCB rs) ~>. cantParse rs "Funcall"
 	=(Just (SFC (FC (fromJust t) (fromJust t1))), e, rs)
 #(t1, e1, rs) = parseKAssign rs ~>- parseExp ~> parseSemicolon // Assing
-|(isNothing t) = (Nothing, e1 ++ e, rs)
+|(isNothing t1) = (Nothing, e1 ++ e, findSemicolonCB rs) ~>. cantParse rs "Assing"
 =(Just (Ass (fromJust t) (fromJust t1)), e1 ++ e, rs)
-parseStmt [r:rs] = cantParse r "Stmt" rs
+parseStmt r=:[_:_] = cantParse r (trace "hi" "Stmt") (findSemicolonCB r)
 parseStmt [] = endOfFileError
+
+findSemicolonCB :: [Token] -> [Token]
+findSemicolonCB [{token=Semicolon}: rs] = (trace "ha" rs)
+findSemicolonCB r=:[{token=CBOpen}: _] = (trace "ha1" r)
+findSemicolonCB r=:[{token=CBClose}: _] = (trace "ha2" r)
+findSemicolonCB [_: rs] = findSemicolonCB (trace "ha3" rs)
+findSemicolonCB r = r
+
+findCBClose :: [Token] -> [Token]
+findCBClose r=:[{token=CBClose}: _] = r
+findCBClose [_: rs] = findCBClose rs
+findCBClose r = r
 
 parseActArgs_ :: [Token] -> (Maybe [ActArgs], [String], [Token])
 parseActArgs_ r=:[{token = PClose}: _] = (Just [], [], r) // ActArgs*
@@ -165,11 +194,11 @@ parseActArgs_ r = parseActArgs r
 parseActArgs :: [Token] -> (Maybe [ActArgs], [String], [Token])
 parseActArgs r // ActArgs+
 #(t, e, rs) = parseExp r
-|(isNothing t) = (Nothing, e, rs)
+|(isNothing t) = (Nothing, e, rs) ~>. cantParse r "ActArgs"
 #(t1, e1, rs1) = parseComma rs
-|(isNothing t1) = (Just [AA (fromJust t)], e1 ++ e, rs)
+|(isNothing t1) = (Just [AA (fromJust t)], e, rs)
 #(t1, e2, rs) = parseActArgs rs1
-|(isNothing t1) = (Nothing, e2 ++ e1 ++ e, rs)
+|(isNothing t1) = (Nothing, e1 ++ e, rs) ~>. cantParse r "ActArgs"
 =(Just ([AA (fromJust t): fromJust t1]), e2 ++ e1 ++ e, rs)
 
 /* 
@@ -367,6 +396,10 @@ isPOpen :: [Token] -> Bool
 isPOpen [{token = POpen}:_] = True
 isPOpen _ = False
 
+isCBClose :: [Token] -> Bool
+isCBClose [{token = CBClose}:_] = True
+isCBClose _ = False
+
 endOfFileError = ParseError "Unexpected end of file" []
 
 class cantParse a :: a String [Token] -> (Maybe b, [String], [Token])
@@ -405,4 +438,4 @@ ParseError e rs = (Nothing, [e], rs)
 (~>.) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
 (~>.) (t, e, rs) p2
 #(t2, e2, rs) = p2 rs
-=(t, e2 ++ e, rs)
+=(Nothing, e2 ++ e, rs)
