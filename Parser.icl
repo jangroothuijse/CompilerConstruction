@@ -13,7 +13,7 @@ parseProg :: [Token] -> (Maybe Prog, [String], [Token])
 parseProg r=:[_:_]
 #(t, e, rs)		= parseDecls r
 |isNothing t	= (Nothing, e, rs)
-=(Just (P (fromJust t)), e, rs)
+=(Just (fromJust t), e, rs)
 parseProg []	= endOfFileError
 
 parseDecls :: [Token] -> (Maybe [Decl], [String], [Token])

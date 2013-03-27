@@ -5,7 +5,7 @@ from Tokenizer import :: Token
 import Result
 import StdMaybe
 
-:: Prog = P [Decl]
+:: Prog :== [Decl]
 :: Decl = V VarDecl | F FunDecl
 :: VarDecl  = VD Type Id Exp
 :: FunDecl = Fun RetType Id [FArgs] [VarDecl] [Stmt]

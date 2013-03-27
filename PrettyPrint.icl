@@ -59,7 +59,7 @@ notSeperated = implode ""
 class pretty a :: Int a -> String
 
 instance pretty Prog
-where pretty _ (P decls) = foldl (+++) "" [(pretty 0 d) +++ "\n" \\ d <- decls]
+where pretty _ decls = foldl (+++) "" [(pretty 0 d) +++ "\n" \\ d <- decls]
 
 instance pretty Decl
 where 
