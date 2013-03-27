@@ -20,7 +20,7 @@ import StdMaybe
 :: ActArgs = AA Exp
 :: Op2 = PPlus | PMin | PMul | PDiv | PMod | PEq | PLT | PGT | PLTE | PGTE | PNEq | PAnd | POr | PCons
 :: Op1 = PNot | PNeg
-:: Id = PId String
+:: Id :== String
 
 :: Priority = PAll | PBlock | PStatement | PBrace
 

@@ -97,9 +97,6 @@ where
 	toString (TTup (type1, type2)) = "(" +++ (toString type1) +++ ", " +++ (toString type2) +++ ")"
 	toString (TList type) = "[" +++ (toString type) +++ "]"
 	toString (TId iden) = toString iden
-	
-instance toString Id
-where toString (PId name) = name
 
 instance toString RetType
 where

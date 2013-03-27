@@ -343,8 +343,8 @@ parseIdAndCall [{token = Identifier name}:rs] = case rs of
 	[{token = POpen}:rrs]
 	#(t, e,rs) = parsePOpen rs ~>- parseActArgs_ ~> parsePClose
 	|isNothing t = (Nothing, e, rs)
-	= (Just (EFC (FC (PId name) (fromJust t))), e, rs)
-	_						= (Just (I (PId name)), [], rs)		// ID
+	= (Just (EFC (FC name (fromJust t))), e, rs)
+	_						= (Just (I name), [], rs)		// ID
 parseIdAndCall x = cantParse x "Id or Call" x
  
 parseSemicolon :: [Token] -> (Maybe Bool, [String], [Token])
@@ -394,7 +394,7 @@ parseKElse [r: rs]				= cantParse r "'else'" rs
 parseKElse []					= endOfFileError
 
 parseId :: [Token] -> (Maybe Id, [String], [Token])
-parseId [{token = Identifier s}: rs]= (Just (PId s), [], rs)
+parseId [{token = Identifier s}: rs]= (Just s, [], rs)
 parseId [r: rs]						= cantParse r "id" rs
 parseId []							= endOfFileError
 
