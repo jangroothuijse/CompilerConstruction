@@ -38,11 +38,11 @@ parseDecl r=:[_:_]
 	#(t3, e2, rs)	= parseKAssign rs ~>- parseExp ~> parseSemicolon
 	|isNothing t3	= (Nothing, e2 ++ e1 ++ e, rs) ~>. findDeclEnd ~>. cantParse rs "VarDecl"
 	#(RT t1)		= t1
-	=(Just (V (VD t1 t2 (fromJust t3))), e2 ++ e1 ++ e, rs)
-#(t, e2, rs)	= parseFArgs_ rs1 ~> parsePClose ~> parseCBOpen ~># parseVarDecls_ ~># parseStmts ~> parseCBClose // FunDecl
+	=(Just (V { type = t1, name = t2, exp = (fromJust t3) }), e2 ++ e1 ++ e, rs)
+#(t, e2, rs)	= parseFArg_ rs1 ~> parsePClose ~> parseCBOpen ~># parseVarDecls_ ~># parseStmts ~> parseCBClose // FunDecl
 |isNothing t	= (Nothing, e2 ++ e1 ++ e, rs) ~>. findDeclEnd ~>. cantParse rs "FunDecl"
 #((t3, t4), t5)	= fromJust t
-=(Just (F (Fun t1 t2 t3 t4 t5)), e, rs)
+=(Just (F { retType = t1, funName = t2, args = t3, vars = t4, stmts = t5}), e, rs)
 	where 
 	isPVoid :: RetType -> Bool
 	isPVoid PVoid	= True
@@ -82,26 +82,26 @@ parseType [{token = SBOpen}: rs] // A list
 parseType [r:rs]= cantParse r "Type" rs
 parseType []	= endOfFileError
 
-parseFArgs_ :: [Token] -> (Maybe [FArgs], [String], [Token])
-parseFArgs_ r=:[{token = PClose}: _]	= (Just [], [], r) // FArgs*
-parseFArgs_ r							= parseFArgs r
+parseFArg_ :: [Token] -> (Maybe [FArg], [String], [Token])
+parseFArg_ r=:[{token = PClose}: _]	= (Just [], [], r) // FArg*
+parseFArg_ r							= parseFArgs r
 
-parseFArgs :: [Token] -> (Maybe [FArgs], [String], [Token])
-parseFArgs r // FArgs+
+parseFArgs :: [Token] -> (Maybe [FArg], [String], [Token])
+parseFArgs r // FArg+
 #(t, e, rs)		= parseFArg r
 |isNothing t	= (Nothing, e, rs)
 #(t1, e1, rs1)	= parseComma rs
-|isNothing t1	= (Just [fromJust t], e, rs) // Last FArgs reached
+|isNothing t1	= (Just [fromJust t], e, rs) // Last FArg reached
 #(t1, e2, rs)	= parseFArgs rs1
 |isNothing t1	= (Nothing, e2 ++ e1 ++ e, rs)
 =(Just [fromJust t:fromJust t1], e2 ++ e1 ++ e, rs)
 
-parseFArg :: [Token] -> (Maybe FArgs, [String], [Token])
+parseFArg :: [Token] -> ((Maybe FArg), [String], [Token])
 parseFArg r
 #(t, e, rs)		= parseType r ~># parseId
 |isNothing t	= (Nothing, e, rs)
 #(t1, t2)		= fromJust t
-=(Just (FA t1 t2), e, rs)
+=(Just { argType = t1, argName = t2 }, e, rs)
 
 parseVarDecls_ :: [Token] -> (Maybe [VarDecl], [String], [Token])
 parseVarDecls_ r // VarDecl*
@@ -111,12 +111,13 @@ parseVarDecls_ r // VarDecl*
 |isNothing t1	= (Nothing, e1 ++ e, rs)
 =(Just [fromJust t:fromJust t1], e1 ++ e, rs)
 
+
 parseVarDecl :: [Token] -> (Maybe VarDecl, [String], [Token])
 parseVarDecl r
 #(t, e, rs)		= parseType r ~># parseId ~> parseKAssign ~># parseExp ~> parseSemicolon
 |isNothing t	=  (Nothing, e, rs) ~>. cantParse r "VarDecl"
 #((t1, t2), t3)	= fromJust t
-=(Just (VD t1 t2 t3), e, rs)
+=(Just { type = t1, name = t2, exp = t3}, e, rs)
 
 parseStmts :: [Token] -> (Maybe [Stmt], [String], [Token])
 parseStmts r // Stmt+
@@ -184,7 +185,7 @@ parseStmt r=:[{token = Identifier _}: rs] // Funcall or Assign
 |(isPOpen rs)
 	#(t1, e1, rs)	= parsePOpen rs ~>- parseActArgs_ ~> parsePClose ~> parseSemicolon // Funcall
 	|isNothing t1	= (Nothing, e, findSemicolonCB r) ~>. cantParse rs "Funcall"
-	=(Just (SFC (FC (fromJust t) (fromJust t1))), e, rs)
+	=(Just (SFC { callName = fromJust t, callArgs = fromJust t1}), e, rs)
 #(t1, e1, rs)	= parseKAssign rs ~>- parseExp ~> parseSemicolon // Assing
 |isNothing t1	= (Nothing, e1 ++ e, findSemicolonCB r) ~>. cantParse rs "Assing"
 =(Just (Ass (fromJust t) (fromJust t1)), e1 ++ e, rs)
@@ -202,19 +203,19 @@ findSemicolonCB r=:[{token=CBClose}: _]	= (trace "ha2" r)
 findSemicolonCB [_: rs]					= findSemicolonCB (trace "ha3" rs)
 findSemicolonCB r						= r
 
-parseActArgs_ :: [Token] -> (Maybe [ActArgs], [String], [Token])
+parseActArgs_ :: [Token] -> (Maybe [Exp], [String], [Token])
 parseActArgs_ r=:[{token = PClose}: _]	= (Just [], [], r) // ActArgs*
 parseActArgs_ r							= parseActArgs r
 
-parseActArgs :: [Token] -> (Maybe [ActArgs], [String], [Token])
+parseActArgs :: [Token] -> (Maybe [Exp], [String], [Token])
 parseActArgs r // ActArgs+
 #(t, e, rs)		= parseExp r
 |isNothing t	= (Nothing, e, rs) ~>. cantParse r "ActArgs"
 #(t1, e1, rs1)	= parseComma rs
-|isNothing t1	= (Just [AA (fromJust t)], e, rs)
+|isNothing t1	= (Just [(fromJust t)], e, rs)
 #(t1, e2, rs)	= parseActArgs rs1
 |isNothing t1	= (Nothing, e1 ++ e, rs) ~>. cantParse r "ActArgs"
-=(Just ([AA (fromJust t): fromJust t1]), e2 ++ e1 ++ e, rs)
+=(Just [fromJust t: fromJust t1], e2 ++ e1 ++ e, rs)
 
 /* 
  * ConsExp = RelExp ConsExp`
@@ -343,7 +344,7 @@ parseIdAndCall [{token = Identifier name}:rs] = case rs of
 	[{token = POpen}:rrs]
 	#(t, e,rs) = parsePOpen rs ~>- parseActArgs_ ~> parsePClose
 	|isNothing t = (Nothing, e, rs)
-	= (Just (EFC (FC name (fromJust t))), e, rs)
+	= (Just (EFC { callName = name, callArgs = fromJust t }), e, rs)
 	_						= (Just (I name), [], rs)		// ID
 parseIdAndCall x = cantParse x "Id or Call" x
  

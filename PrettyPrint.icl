@@ -67,13 +67,13 @@ where
 	pretty n (F funDecl) = pretty n funDecl
 	
 instance pretty VarDecl
-where pretty n (VD type name exp) = (tabs n) +++ (toString type) +++ " " +++ (toString name) +++ " = " +++ (toString exp) +++ ";\n"
+where pretty n v = (tabs n) +++ (toString v.type) +++ " " +++ (toString v.name) +++ " = " +++ (toString v.exp) +++ ";\n"
 
 instance pretty FunDecl
-where pretty n (Fun retType name arguments vars stmts) = (toString retType) +++ " " +++ 
-		toString name +++ "(" +++ (commaSeperated arguments) +++ ") {\n"
-		 +++ (notSeperated (map (pretty (n+1)) vars))
-		 +++ (notSeperated (map (pretty (n+1)) stmts))
+where pretty n f = (toString f.retType) +++ " " +++ 
+		toString f.funName +++ "(" +++ (commaSeperated f.args) +++ ") {\n"
+		 +++ (notSeperated (map (pretty (n+1)) f.vars))
+		 +++ (notSeperated (map (pretty (n+1)) f.stmts))
 		 +++ "}\n"
 		 		 
 instance pretty Stmt
@@ -87,8 +87,8 @@ where
 	pretty n (Return) = (tabs n) +++ "return;\n"
 	pretty n (Returne e) = (tabs n) +++ "return " +++ (toString e) +++ ";\n"
 
-instance toString FArgs
-where toString (FA type iden) = (toString type) +++ " " +++ (toString iden)
+instance toString FArg
+where toString r = (toString r.argType) +++ " " +++ (toString r.argName)
 
 instance toString Type
 where 
@@ -118,11 +118,7 @@ where
 
 instance toString FunCall
 where
-	toString (FC name args) = (toString name) +++ "(" +++ (commaSeperated args) +++ ")"
-	
-instance toString ActArgs
-where
-	toString (AA e) = toString e
+	toString fc = (toString fc.callName) +++ "(" +++ (commaSeperated fc.callArgs) +++ ")"
 	
 instance toString Op2
 where
