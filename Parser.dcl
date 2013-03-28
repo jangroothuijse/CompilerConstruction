@@ -8,7 +8,7 @@ import StdMaybe
 :: Prog :== [Decl]
 :: Decl = V VarDecl | F FunDecl
 :: VarDecl  = { type :: Type, name :: Id, exp :: Exp }
-:: FunDecl = { retType :: RetType, funName :: String, args :: [FArg], vars ::[VarDecl], stmts :: [Stmt] }
+:: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], stmts :: [Stmt] }
 :: RetType = RT Type | PVoid
 :: Type = TInt | PBool | TTup (Type, Type) | TList Type | TId Id
 :: FArg = { argType :: Type, argName :: Id }

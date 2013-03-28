@@ -6,6 +6,7 @@ import Tokenizer
 import Parser
 import PrettyPrint
 import Result
+import SemanticAnalyzer
 
 toLines :: *File -> Result [String]
 toLines file
@@ -23,6 +24,6 @@ Start world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # tok = (tokenizer (toLines file))
 # ast = parse tok
-|(isNothing ast.result) = (tok, prettyPrint tok, ast, "")
-=   (tok, prettyPrint tok, ast, pretty 0 (fromJust ast.result))
+|(isNothing ast.result) = (tok, prettyPrint tok, ast, "", "")
+=   (tok, prettyPrint tok, ast, pretty 0 (fromJust ast.result), foldl (+++) "" (analyzer (fromJust ast.result)).envErrors)
 
