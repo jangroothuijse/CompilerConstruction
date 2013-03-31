@@ -1,3 +1,27 @@
+
+Int product ([Int] list)
+{
+	if (isEmpty(list))
+		return 1;
+	else
+		return hd(list) * product(tail(list));
+}
+
+[Int] fromTo (Int from, Int to)
+{
+	if (from <= to)
+		return from : fromTo (from + 1, to);
+	else
+		return [];
+}
+
+// A list based factorial function
+// Defined here to show that functions can be given in any order (unlike C)
+Int facL(Int n)
+{
+	return product(fromTo(1, n));
+}
+
 /*
 	Three ways to implement the factorial function in SPL.
 	First the recursive version.
@@ -42,25 +66,3 @@ Void main()
 	print (ok);
 }
 
-// A list based factorial function
-// Defined here to show that functions can be given in any order (unlike C)
-Int facL(Int n)
-{
-	return product(fromTo(1, n));
-}
-
-Int product ([Int] list)
-{
-	if (isEmpty(list))
-		return 1;
-	else
-		return head(list) * product(tail(list));
-}
-
-[Int] fromTo (Int from, Int to)
-{
-	if (from <= to)
-		return from : fromTo (from + 1, to);
-	else
-		return [];
-}

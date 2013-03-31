@@ -1,9 +1,9 @@
 Void keepGoingI (Int n) {
-	while (true) {
+	while (True) {
 		n = n + 1;
 	}
 }
 
 Void keepGoingR (Int n) {
-	return keepGoingR (n + 1)
+	return keepGoingR (n + 1);
 }

@@ -1,12 +1,15 @@
 definition module SemanticAnalyzer
 
 import StdEnv
+import StdMaybe
 import Tokenizer
 import Parser
 import Result
 
-:: Env = { ids :: [Id], envErrors :: [String] }
+:: Env = { ids :: [(Id, Type)], envErrors :: [String], functionId :: Maybe Id }
 
-analyzer :: (Prog -> Env)
+class analyze a :: Env a -> Env
+instance analyze Prog
+typeFor :: Env Id -> Type
 
 

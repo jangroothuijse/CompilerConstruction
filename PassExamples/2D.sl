@@ -1,4 +1,4 @@
-Int foo (Int n)
+(Int, Int) foo (Int n)
 {
 	return (2, 2);
 }

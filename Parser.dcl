@@ -10,7 +10,7 @@ import StdMaybe
 :: VarDecl  = { type :: Type, name :: Id, exp :: Exp }
 :: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], stmts :: [Stmt] }
 :: RetType = RT Type | PVoid
-:: Type = TInt | PBool | TTup (Type, Type) | TList Type | TId Id
+:: Type = TInt | PBool | TTup (Type, Type) | TList Type | TId Id | TFun RetType [Type] | TEmpty
 :: FArg = { argType :: Type, argName :: Id }
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
 			| SFC FunCall | Return | Returne Exp

@@ -22,8 +22,8 @@ Int sum2([Int] l) {
 
 Void main()
 {
-	print (sum([1:2:3:[]]));
-	print (sum1([1:2:3:[]]));
-	print (sum2([1:2:3:[]]));
+	print(sum(1:2:3:[]));
+	print(sum1(1:2:3:[]));
+	print(sum2(1:2:3:[]));
 	return;
 }
