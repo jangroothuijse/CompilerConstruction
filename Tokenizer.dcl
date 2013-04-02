@@ -3,6 +3,7 @@ definition module Tokenizer
 import StdEnv
 import StdMaybe
 import Result
+import GenEq
 
 :: Token = { token :: Symbol, line :: Int, column :: Int }
 :: Symbol = POpen | PClose | CBOpen | CBClose | SBOpen | SBClose | Comma | Semicolon
@@ -12,7 +13,6 @@ import Result
 		 | KTrue | KFalse | KAssign
 :: Operator = Plus | Min | Mul | Div | Mod | Eq | LT | GT | LTE | GTE | NEq | And | Or | Cons | Not
 
-instance ==	Symbol
-instance == Operator
+derive gEq Symbol, Operator
 
 tokenizer :: (Result [String]) -> Result [Token]

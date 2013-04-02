@@ -3,6 +3,7 @@ implementation module Tokenizer
 import StdEnv
 import StdMaybe
 import Result
+import GenEq
 
 :: Tokenizer :== [CharMeta] -> Maybe ([CharMeta], [Token])
 :: CharMeta = { c :: Char, l :: Int, col :: Int }
@@ -122,45 +123,7 @@ where
 	f _ [] = []
 	f i [x:xs] = [{ c = y, l = i, col= j} \\ y <-: x & j <- [0..]] ++ f (i+1) xs
 
-instance ==	Symbol
-where
- (==) CBOpen CBOpen = True
- (==) CBClose CBClose = True
- (==) SBOpen SBOpen = True
- (==) SBClose SBClose = True
- (==) Comma Comma = True
- (==) Semicolon Semicolon = True
- (==) (Identifier a) (Identifier b) = a == b
- (==) (Integer a) (Integer b) = a == b
- (==) (Op a) (Op b) = a == b
- (==) KIf KIf = True
- (==) KElse KElse = True
- (==) KWhile KWhile = True
- (==) KReturn KReturn = True
- (==) KVoid KVoid = True
- (==) KInt KInt = True
- (==) KBool KBool = True
- (==) KTrue KTrue = True
- (==) KFalse KFalse = True
- (==) KAssign KAssign = True
- (==) _ _ = False
-
-instance == Operator
-where
- (==) Plus Plus = True
- (==) Min Min = True
- (==) Mul Mul = True
- (==) Div Div = True
- (==) Mod Mod = True
- (==) Eq Eq = True
- (==) LT LT = True
- (==) GT GT = True
- (==) LTE LTE = True
- (==) GTE GTE = True
- (==) NEq NEq = True
- (==) And And = True
- (==) Or Or = True
- (==) Cons Cons = True
- (==) Not Not = True
+derive gEq Symbol, Operator
 
 Start = tokenizer {result = ["/*1*/{ } *\n",  "/** dont care */ 3\n", "if (foo == True)\n", "\n", "bar = 34;\n", "else bar = 302a;  // this should not show up"], errors = []}
+
