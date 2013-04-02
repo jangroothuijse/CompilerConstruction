@@ -4,6 +4,7 @@ definition module Parser
 from Tokenizer import :: Token
 import Result
 import StdMaybe
+import GenEq
 
 :: Prog :== [Decl]
 :: Decl = V VarDecl | F FunDecl
@@ -29,3 +30,5 @@ parse :: (Result [Token]) -> Result (Maybe Prog)
 (~>) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
 
 parsePClose :: [Token] -> (Maybe Bool, [String], [Token])
+
+derive gEq Decl
