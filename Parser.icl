@@ -2,7 +2,6 @@ implementation module Parser
 
 import Result
 import Tokenizer
-import StdDebug
 
 parse :: (Result [Token]) -> Result (Maybe Prog)
 parse {result = r}
@@ -45,7 +44,7 @@ parseDecl r=:[_:_]
 =(Just (F { retType = t1, funName = t2, args = t3, vars = t4, stmts = t5}), e, rs)
 	where 
 	isPVoid :: RetType -> Bool
-	isPVoid PVoid	= True
+	isPVoid TVoid	= True
 	isPVoid _		= False
 parseDecl [] = (Nothing, [], [])
 
@@ -57,7 +56,7 @@ findDeclEnd [_:rs]					= findDeclEnd rs
 findDeclEnd _						= (Nothing, [], [])
 
 parseRetDecl :: [Token] -> (Maybe RetType, [String], [Token])
-parseRetDecl [{token = KVoid}: rs]	= (Just PVoid, [], rs)
+parseRetDecl [{token = KVoid}: rs]	= (Just TVoid, [], rs)
 parseRetDecl r
 #(t, e, rs)		= parseType r
 |isNothing t	= (Nothing, e, rs)
@@ -65,7 +64,7 @@ parseRetDecl r
 
 parseType :: [Token] -> (Maybe Type, [String], [Token])
 parseType [{token = KInt}: rs]	= (Just TInt, [], rs)
-parseType [{token = KBool}: rs]	= (Just PBool, [], rs)
+parseType [{token = KBool}: rs]	= (Just TBool, [], rs)
 parseType [{token = POpen}: rs] // A tupel
 #(t, e, rs)		= parseType rs ~> parseComma ~># parseType ~> parsePClose
 |isNothing t	= (Nothing, e, rs) ~>. cantParse rs "Type"
@@ -193,14 +192,14 @@ parseStmt r=:[{token = Identifier _}: rs] // Funcall or Assign
 	isPOpen :: [Token] -> Bool
 	isPOpen [{token = POpen}:_]	= True
 	isPOpen _					= False
-parseStmt r=:[_:_]	= cantParse r (trace "hi" "Stmt") (findSemicolonCB r)
+parseStmt r=:[_:_]	= cantParse r "Stmt" (findSemicolonCB r)
 parseStmt []		= endOfFileError
 
 findSemicolonCB :: [Token] -> [Token]
-findSemicolonCB [{token=Semicolon}: rs]	= (trace "ha" rs)
-findSemicolonCB r=:[{token=CBOpen}: _]	= (trace "ha1" r)
-findSemicolonCB r=:[{token=CBClose}: _]	= (trace "ha2" r)
-findSemicolonCB [_: rs]					= findSemicolonCB (trace "ha3" rs)
+findSemicolonCB [{token=Semicolon}: rs]	= rs
+findSemicolonCB r=:[{token=CBOpen}: _]	= r
+findSemicolonCB r=:[{token=CBClose}: _]	= r
+findSemicolonCB [_: rs]					= findSemicolonCB rs
 findSemicolonCB r						= r
 
 parseActArgs_ :: [Token] -> (Maybe [Exp], [String], [Token])

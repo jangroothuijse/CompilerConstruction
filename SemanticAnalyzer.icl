@@ -45,9 +45,9 @@ where
 instance analyze Stmt
 where
 	analyze e (Block l) = fa e l
-	analyze e (If exp stmt) = analyzeType (errorsOnly (errorsOnly e stmt) exp) exp PBool
-	analyze e (Ife exp st1 st2) = analyzeType (errorsOnly (errorsOnly (errorsOnly e st2) st1) exp) exp PBool
-	analyze e (While exp stmt) = analyzeType (errorsOnly (errorsOnly e stmt) exp) exp PBool
+	analyze e (If exp stmt) = analyzeType (errorsOnly (errorsOnly e stmt) exp) exp TBool
+	analyze e (Ife exp st1 st2) = analyzeType (errorsOnly (errorsOnly (errorsOnly e st2) st1) exp) exp TBool
+	analyze e (While exp stmt) = analyzeType (errorsOnly (errorsOnly e stmt) exp) exp TBool
 	analyze e (Ass i exp) = analyzeType (analyze (idExists i e id) exp) exp (typeFor e i)
 	analyze e (SFC f) = analyze e f
 	analyze e Return = returnHelp e	(analyzeType e (returnType (typeFor e (fromJust e.functionId))) TEmpty) 
