@@ -36,9 +36,9 @@ parseDecl r=:[_:_]
 |isNothing t // VarDecl
 	|(isPVoid t1)	= cantParse rs "FunDecl" rs1
 	#(t3, e2, rs)	= parseKAssign rs ~>- parseExp ~> parseSemicolon
-	|isNothing t3	= (Nothing, e2 ++ e1 ++ e, rs) ~>. findDeclEnd ~>. cantParse rs "VarDecl"
+	|isNothing t3	= (Nothing, e2 ++ e, rs) ~>. findDeclEnd ~>. cantParse rs "VarDecl"
 	#(RT t1)		= t1
-	=(Just (V { type = t1, name = t2, exp = (fromJust t3) }), e2 ++ e1 ++ e, rs)
+	=(Just (V { type = t1, name = t2, exp = (fromJust t3) }), e2 ++ e, rs)
 #(t, e2, rs)	= parseFArg_ rs1 ~> parsePClose ~> parseCBOpen ~># parseVarDecls_ ~># parseStmts ~> parseCBClose // FunDecl
 |isNothing t	= (Nothing, e2 ++ e1 ++ e, rs) ~>. findDeclEnd ~>. cantParse rs "FunDecl"
 #((t3, t4), t5)	= fromJust t
