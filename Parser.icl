@@ -2,6 +2,7 @@ implementation module Parser
 
 import Result
 import Tokenizer
+import GenEq
 
 parse :: (Result [Token]) -> Result (Maybe Prog)
 parse {result = r}
@@ -437,3 +438,6 @@ ParseError e rs = (Nothing, [e], rs)
 (~>.) (t, e, rs) p2
 #(t2, e2, rs)	= p2 rs
 =(Nothing, e2 ++ e, rs)
+	
+derive gEq Decl, FunDecl, VarDecl, Stmt, FArg, RetType, Exp, Type, FunCall, Op1, Op2
+
