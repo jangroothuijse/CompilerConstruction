@@ -10,13 +10,13 @@ import SemanticAnalyzer
 class typeCheck a :: Env a Type -> Bool
 
 returnTypeCheck :: Env RetType RetType -> Bool
-returnTypeCheck e PVoid PVoid = True
+returnTypeCheck e TVoid TVoid = True
 returnTypeCheck e (RT type1) (RT type2) = typeCheck e type1 type2
 returnTypeCheck e _ _ = False
 
 returnType :: Type -> Type
 returnType (TFun rt _) = case rt of 
-	PVoid		= TEmpty
+	TVoid		= TEmpty
 	(RT type)	= type
 returnType t = t
 
@@ -25,15 +25,15 @@ returnType t = t
 instance typeCheck Type where
 	typeCheck e TInt TInt = True
 	typeCheck e TEmpty TEmpty = True	// Case of void....please dont ask
-	typeCheck e PBool PBool = True
+	typeCheck e TBool TBool = True
 	typeCheck e (TTup (a1, a2)) (TTup (b1, b2)) = (typeCheck e a1 b1) && (typeCheck e a2 b2)
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
 	typeCheck e (TId i1) _ = True				// So that generic operations can be defined on other generic operations
 	typeCheck e (TFun rt1 tl1) (TFun rt2 tl2) = foldl (&&) (returnTypeCheck e rt1 rt2 && length tl1 == length tl2) (map (\z . typeCheck e (fst z) (snd z)) [(x,y)\\x<-tl1&y<-tl2])
 	typeCheck e a b = False		// No implicit casting, not even function without arguments to their return value
 
-// So if a is required, PBool will do
-// But if PBool is required, a will not do
+// So if a is required, TBool will do
+// But if TBool is required, a will not do
 // Hence we have 'typeCheck e (TId i1) _ = True' but not 'typeCheck e _ (TId i1) = True'
 
 instance typeCheck Exp where
@@ -47,8 +47,8 @@ instance typeCheck Exp where
 	typeCheck e (EBrace exp) type = typeCheck e exp type
 	typeCheck e EBlock type = typeCheck e (TList (TId "t")) type
 	typeCheck e (Tup e1 e2) (TTup (b1, b2)) = typeCheck e e1 b1 && typeCheck e e2 b2
-	typeCheck e EFalse type = typeCheck e PBool type
-	typeCheck e ETrue type = typeCheck e PBool type
+	typeCheck e EFalse type = typeCheck e TBool type
+	typeCheck e ETrue type = typeCheck e TBool type
 //	typeCheck e (EFC f) (TFun rt2 tl2) = foldr (&&) (returnTypeCheck e ft rt2 && length f.callArgs == length tl2) (map (\t . typeCheck e (fst t) (snd t)) [(x,y)\\x <- f.callArgs & y <- tl2])
 //	where 
 //		ft = RT (typeFor e f.callName) // Perhaps a correct rule for Id's when we support higher order functions...?
@@ -60,4 +60,4 @@ analyzeType :: Env a Type -> Env | typeCheck, toString a
 analyzeType env t1 t2 = if (typeCheck env t1 t2) env 
 						{ env & envErrors = [("Type required " +++ (toString t2) +++ " but found " +++ (toString t1)):env.envErrors] }
 
-Start = (analyzeType { ids = [], envErrors = [], functionId = Nothing } (TFun PVoid [PBool, TInt]) (TFun PVoid [PBool, PBool])).envErrors
+Start = (analyzeType { ids = [], envErrors = [], functionId = Nothing } (TFun TVoid [TBool, TInt]) (TFun TVoid [TBool, TBool])).envErrors

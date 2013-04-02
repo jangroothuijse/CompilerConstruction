@@ -93,7 +93,7 @@ where toString r = (toString r.argType) +++ " " +++ (toString r.argName)
 instance toString Type
 where 
 	toString TInt = "Int"
-	toString PBool = "Bool"
+	toString TBool = "Bool"
 	toString (TTup (type1, type2)) = "(" +++ (toString type1) +++ ", " +++ (toString type2) +++ ")"
 	toString (TList type) = "[" +++ (toString type) +++ "]"
 	toString (TId iden) = toString iden
@@ -103,7 +103,7 @@ where
 instance toString RetType
 where
 	toString (RT type) = toString type
-	toString PVoid = "Void"
+	toString TVoid = "Void"
 	
 instance toString Exp
 where
