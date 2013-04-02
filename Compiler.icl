@@ -8,6 +8,7 @@ import PrettyPrinter
 import Result
 import SemanticAnalyzer
 import SPLDefaultEnv
+import CompilerTest
 
 toLines :: *File -> Result [String]
 toLines file
@@ -27,4 +28,5 @@ Start world
 # ast = parse tok
 |(isNothing ast.result) = (tok, prettyPrint tok, ast, "", "")
 =   (tok, prettyPrint tok, ast, pretty 0 (fromJust ast.result), foldl (+++) "" (map ((+++) "\n") (analyze splDefaultEnv (fromJust ast.result)).envErrors))
+
 
