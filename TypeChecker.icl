@@ -14,7 +14,7 @@ replaceId :: Id Type Type -> Type
 replaceId i t (TId j) = if (j == i) t (TId j)
 replaceId i t (TTup (a, b)) = TTup (replaceId i t a, replaceId i t b)
 replaceId i t (TList l) = TList (replaceId i t l)
-replaceId i t (TFun PVoid ta) = TFun PVoid (map (replaceId i t) ta)
+replaceId i t (TFun TVoid ta) = TFun TVoid (map (replaceId i t) ta)
 replaceId i t (TFun (RT rt) ta) = TFun (RT (replaceId i t rt)) (map (replaceId i t) ta)
 replaceId i t1 t2 = t2 // TInt etc are unaffected
 
@@ -51,8 +51,8 @@ typeOf e (Tup e1 e2)
 # (e, t1) = typeOf e e1
 # (e, t2) = typeOf e e2
 = (e, TTup (t1, t2))
-typeOf e EFalse = (e, PBool)
-typeOf e ETrue = (e, PBool)
+typeOf e EFalse = (e, TBool)
+typeOf e ETrue = (e, TBool)
 // For function call, we need to replace all type Id's by fresh one's, but a -> a must ofc become #1 -> #1
 typeOf e (EFC f) = replaceListOfIds funType (listOfIds [] funType) e
 where 
@@ -61,7 +61,7 @@ where
 	listOfIds acc (TTup (t1, t2)) = listOfIds (listOfIds acc t2) t1 
 	listOfIds acc (TList t) = listOfIds acc t
 	listOfIds acc (TFun (RT rt) l) = foldl (listOfIds) (listOfIds acc rt) l
-	listOfIds acc (TFun PVoid l) = foldl (listOfIds) acc l
+	listOfIds acc (TFun TVoid l) = foldl (listOfIds) acc l
 	listOfIds acc (TId i) = [i:acc]
 	listOfIds acc _ = acc
 	replaceListOfIds :: Type [Id] Env -> (Env, Type)
@@ -130,4 +130,4 @@ analyzeType :: Env a Type -> Env | typeCheck, toString a
 analyzeType env t1 t2 = if (typeCheck env t1 t2) env 
 						{ env & envErrors = [("Type required " +++ (toString t2) +++ " but found " +++ (toString t1)):env.envErrors] }
 
-Start = (analyzeType { ids = [], envErrors = [], functionId = Nothing } (TFun TVoid [TBool, TInt]) (TFun TVoid [TBool, TBool])).envErrors
+Start = (analyzeType { ids = [], envErrors = [], functionId = Nothing, freshId = 0 } (TFun TVoid [TBool, TInt]) (TFun TVoid [TBool, TBool])).envErrors
