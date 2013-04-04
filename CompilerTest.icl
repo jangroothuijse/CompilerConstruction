@@ -14,7 +14,7 @@ where
 		xs = toLines_ (dropWhile (\x=x<>'\n') s)
 
 Start
-#(myProg, _) = progTest (newEnv 5)
+#(myProg, _) = progTest (newEnv 6)
 #parseResult = parse (tokenizer (toLines (pretty 0 myProg)))
 |not (isEmpty parseResult.errors) = (False, (pretty 0 myProg), parseResult.errors)
 #progResult = fromJust parseResult.result
@@ -71,28 +71,75 @@ where
 
 //randomTokensStmt = []
 
-:: Env = {var :: Int, fun :: Int, seed :: Int}
+:: Env = {var :: Int, localvar :: Int, fun :: Int, seed :: Int}
 
 newEnv i = e
 where
-	(_, e) = random {var = 0, fun = 0, seed = i}
+	(_, e) = random {var = 0, localvar = 0, fun = 0, seed = i}
 
 progTest :: Env -> (Prog, Env)
 progTest e
 #(rand, e) = randomD e
-|rand > 0.5
-	#(l1, e) = progTestVar e
+|rand > 0.4
+	#(l1, e) = newVar e
 	#(l2, e) = progTest e
-	= ([l1: l2], e)
-|rand > 0.1
-	#(l1, e) = progTestFun e
+	= ([V l1: l2], e)
+#(l1, e) =  newFun e
+|rand > 0.065
 	#(l2, e) = progTest e
-	= ([l1: l2], e)
-= ([], e)
- 
-progTestVar e = (V { type = TInt, name = "v" +++ toString e.var, exp = EInt 0}, {e & var = e.var + 1})
+	= ([F l1: l2], e)
+=([F l1], e)
 
-progTestFun e = (F {retType = TVoid, funName = "f" +++ toString e.fun, args = [], vars = [], stmts = [Return]}, {e & fun = e.fun + 1})
+newVar :: Env -> (VarDecl, Env)
+newVar e
+#(varName, e)	= newVarName e
+#(exp, e)		= newExp e
+=({ type = TInt, name = varName, exp = exp}, e)
+
+newLocVar :: Env -> (VarDecl, Env)
+newLocVar e
+#(varName, e)	= newLocVarName e
+#(exp, e)		= newExp e
+=({ type = TInt, name = varName, exp = exp}, e)
+
+newFun :: Env -> (FunDecl, Env)
+newFun e
+#(funName, e)	= newFunName e
+#(args, e)		= newArgs {e & localvar = 0}
+#(vars, e)		= newLocVars e
+#(stmts, e)		= newStmts {e & localvar = max e.localvar e.var}
+=({retType = TVoid, funName = funName, args = args, vars = vars, stmts = stmts}, e)
+
+newLocVars :: Env -> ([VarDecl], Env)
+newLocVars e
+#(rand, e)	= randomD e
+|rand > 0.5
+	#(l1, e)	= newLocVar e
+	#(l2, e)	= newLocVars e
+	=([l1: l2], e)
+=([], e)
+
+newArgs :: Env -> ([FArg], Env)
+newArgs e
+#(rand, e)	= randomD e
+|rand > 0.6
+	#(id, e)		= newLocVarName e
+	#(args, e)	= newArgs e
+	=([{ argType = TInt, argName = id}:args], e)
+=([], e)
+
+newVarName e = ("v" +++ toString e.var, {e & var = e.var + 1})
+newFunName e = ("f" +++ toString e.fun, {e & fun = e.fun + 1})
+
+newLocVarName e
+|e.var < e.localvar = ("v" +++ toString e.localvar, {e & localvar = e.localvar + 1})
+#(rand, e)	= randomD e
+|rand < 0.3 = ("v" +++ toString e.localvar, {e & localvar = e.var})
+#num = e.localvar + toInt (toReal (e.var - e.localvar) * rand)
+=("v" +++ toString num, {e & localvar = num + 1})
+
+newExp e = (EInt 0, e)
+newStmts e = ([Return], e)
 
 randomD :: Env -> (Real, Env)
 randomD e = ((toReal x) / 65536.0, y)
