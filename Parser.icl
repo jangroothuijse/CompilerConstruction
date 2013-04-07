@@ -5,10 +5,14 @@ import Tokenizer
 import GenEq
 import StdEnv
 
-parse :: (Result [Token]) -> Result (Maybe Prog)
-parse {result = r}
+parse :: (Result [Token]) -> Result (Prog)
+parse (Res r)
 #(p, e, y)		= parseProg r
-={result = p, errors = e}
+|isEmpty e
+	|isNothing p=Err ["Can't parse, unknown error."]
+	= Res (fromJust p)
+=Err e
+parse (Err e) = Err e
 
 parseProg :: [Token] -> (Maybe Prog, [String], [Token])
 parseProg r=:[_:_]

@@ -115,7 +115,7 @@ tokens = [
 	]
 	
 tokenizer :: (Result [String]) -> Result [Token]
-tokenizer {result = r} = {result = (snd o fromJust o (tokenize tokens) o (toCharsInLine)) r, errors = []}
+tokenizer (Res r) = Res ((snd o fromJust o (tokenize tokens) o (toCharsInLine)) r)
 
 toCharsInLine :: [String] -> [CharMeta]
 toCharsInLine strings = f 1 strings
@@ -125,5 +125,5 @@ where
 
 derive gEq Symbol, Operator
 
-Start = tokenizer {result = ["/*1*/{ } *\n",  "/** dont care */ 3\n", "if (foo == True)\n", "\n", "bar = 34;\n", "else bar = 302a;  // this should not show up"], errors = []}
+Start = tokenizer (Res ["/*1*/{ } *\n",  "/** dont care */ 3\n", "if (foo == True)\n", "\n", "bar = 34;\n", "else bar = 302a;  // this should not show up"])
 
