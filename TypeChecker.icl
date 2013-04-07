@@ -54,9 +54,9 @@ instance typeCheck Type where
 	typeCheck e TInt TInt = e
 	typeCheck e TEmpty TEmpty = e	// Case of void....please dont ask
 	typeCheck e TBool TBool = e
-	typeCheck e (TTup (a1, a2)) (TTup (b1, b2)) = typeCheck (typeCheck e a2 b2) a1 b1
+	typeCheck e (TTup (a1, a2)) (TTup (b1, b2)) = let e2 = (typeCheck e a2 b2) in typeCheck e2 a1 (e2.subs b1)
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
-	typeCheck e found (TId required) = e
+	typeCheck e found (TId required) = { e & /*envErrors = ["Are you kidding me?" : e.envErrors],*/ subs = (replaceId required found) o e.subs}
 	typeCheck e (TId found) requiredType = { e & subs = (replaceId found requiredType) o e.subs }
 //  To support higher-order functions, we have no syntax to type higher order expression, but if we did, this would type them:
 //	typeCheck e (TFun rt1 tl1) (TFun rt2 tl2) = foldl tupleCheck
@@ -89,7 +89,11 @@ instance typeCheck Exp where
 exampleType = (TFun (RT (TList (TId "t"))) [TId "t", TList (TId "t")])
 exampleEnv = (typeCheck splDefaultEnv (Op2 ETrue PCons EBlock) (TList TInt))
 
-Start = (exampleEnv.envErrors, "\n", (replaceId "t" TBool o id) exampleType, "\n", exampleEnv.subs exampleType)
+exampleType2 = TTup (TId "a", TId "b")
+exampleExp = Tup ETrue (EInt 5)
+
+Start = typeCheck splDefaultEnv exampleExp exampleType2
+//(exampleEnv.envErrors, "\n", (replaceId "t" TBool o id) exampleType, "\n", exampleEnv.subs exampleType)
 
 
 

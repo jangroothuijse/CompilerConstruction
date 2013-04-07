@@ -1,0 +1,7 @@
+(a, b) swapWrong((b, a) t) {
+	
+	return (snd(t), snd(t));
+}
+
+(Int, Int) i = swapWrong((True, 5));
+
