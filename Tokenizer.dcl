@@ -1,6 +1,5 @@
 definition module Tokenizer
 
-import StdEnv
 import StdMaybe
 import Result
 import GenEq
