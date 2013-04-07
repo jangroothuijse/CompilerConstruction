@@ -69,4 +69,4 @@ where
 	analyze e bool = e
 	
 instance analyze FunCall
-where analyze e f = e //typeCheck (foldl (errorsOnly) (idExists f.callName e id) f.callArgs) (EFC f) (TId "t")
+where analyze e f = (foldl (errorsOnly) (idExists f.callName e id) f.callArgs)
