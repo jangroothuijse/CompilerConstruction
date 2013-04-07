@@ -33,7 +33,7 @@ where
 	analyze e (F f) = analyze e f	
 
 instance analyze VarDecl
-where analyze e v = { e & ids = [(v.name, v.type) : e.ids], envErrors = (analyze e v.exp).envErrors }
+where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } v.exp) v.exp v.type
 	
 instance analyze FunDecl
 where 

@@ -87,7 +87,7 @@ instance typeCheck Exp where
 		e2 = typeCheck e (returnType funType) type  // e2 may have new restrictions in typeVars
 
 exampleType = (TFun (RT (TList (TId "t"))) [TId "t", TList (TId "t")])
-exampleEnv = (typeCheck splDefaultEnv (Op2 (EInt 5) PCons EBlock) (TList TInt))
+exampleEnv = (typeCheck splDefaultEnv (Op2 ETrue PCons EBlock) (TList TInt))
 
 Start = (exampleEnv.envErrors, "\n", (replaceId "t" TBool o id) exampleType, "\n", exampleEnv.subs exampleType)
 
