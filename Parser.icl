@@ -3,6 +3,7 @@ implementation module Parser
 import Result
 import Tokenizer
 import GenEq
+import StdEnv
 
 parse :: (Result [Token]) -> Result (Maybe Prog)
 parse {result = r}

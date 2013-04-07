@@ -1,6 +1,5 @@
 definition module SemanticAnalyzer
 
-import StdEnv
 import StdMaybe
 import Tokenizer
 import Parser
