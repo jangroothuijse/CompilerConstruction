@@ -21,6 +21,20 @@ Start
 = (progResult === myProg, (pretty 0 myProg), parseResult.errors)
 
 /*
+Start
+#(i, e) = rlist (newEnv 6)
+#l = taken 1000 i
+=l
+
+taken 0 _ = []
+taken n l = [hd l:taken (n-1) (tl l)]
+
+rlist e
+#(l1, e) = randomInt e
+#(l2, e) = rlist e
+=([l1: l2], e)
+*/
+/*
 Start = randoms (newEnv 7) 50
 randoms e 0 = []
 randoms e x
@@ -93,13 +107,13 @@ progTest e
 newVar :: Env -> (VarDecl, Env)
 newVar e
 #(varName, e)	= newVarName e
-#(exp, e)		= newExp e
+#(exp, e)		= newIntExp e
 =({ type = TInt, name = varName, exp = exp}, e)
 
 newLocVar :: Env -> (VarDecl, Env)
 newLocVar e
 #(varName, e)	= newLocVarName e
-#(exp, e)		= newExp e
+#(exp, e)		= newIntExp e
 =({ type = TInt, name = varName, exp = exp}, e)
 
 newFun :: Env -> (FunDecl, Env)
@@ -107,7 +121,7 @@ newFun e
 #(funName, e)	= newFunName e
 #(args, e)		= newArgs {e & localvar = 0}
 #(vars, e)		= newLocVars e
-#(stmts, e)		= newStmts {e & localvar = max e.localvar e.var}
+#(stmts, e)		= newStmtsR {e & localvar = max e.localvar e.var}
 =({retType = TVoid, funName = funName, args = args, vars = vars, stmts = stmts}, e)
 
 newLocVars :: Env -> ([VarDecl], Env)
@@ -138,13 +152,65 @@ newLocVarName e
 #num = e.localvar + toInt (toReal (e.var - e.localvar) * rand)
 =("v" +++ toString num, {e & localvar = num + 1})
 
-newExp e = (EInt 0, e)
-newStmts e = ([Return], e)
+newIntExp e
+#(i, e)	= randomInt e
+= (EInt i, e)
+
+newBoolExp e
+#(rand, e)	= randomD e
+|rand > 0.5 = (ETrue, e)
+= (EFalse, e)
+
+newStmtsR e
+#(rand, e)	= randomD e
+|rand > 0.2
+	#(stmts, e) = newStmts e
+	=(stmts ++ [Return], e)
+=([Return], e)
+
+newStmts e
+#(rand, e)	= randomD e
+|rand > 0.2
+	#(stmt ,e) = newStmt e
+	#(stmts ,e) = newStmts e
+	=([stmt: stmts], e)
+=([], e)
+
+newStmtB :: Env -> (Stmt, Env)
+newStmtB e
+#(rand, e)	= randomD e
+|rand > 0.2
+	#(stmts ,e) = newStmts e
+	=(Block stmts, e)
+= newStmt e
+
+newStmt e
+#(rand, e)	= randomD e
+|rand > 0.8
+	#(exp, e) = newBoolExp e
+	#(stmt ,e) = newStmt e
+	=(If exp stmt, e)
+|rand > 0.6
+	#(exp, e) = newBoolExp e
+	#(stmt ,e) = newStmt e
+	#(stmt2 ,e) = newStmt e
+	=(Ife exp stmt stmt2, e)
+#(exp, e) = newBoolExp e
+#(id, e) = locVarName e
+=(Ass id exp, e)
+
+locVarName e = ("v0", e)
 
 randomD :: Env -> (Real, Env)
 randomD e = ((toReal x) / 65536.0, y)
 where
 	(x, y) = random e
+
+randomInt :: Env -> (Int, Env)
+randomInt e
+=(toInt ((101.5^(1.0/65536.0))^toReal x) - 1, y) // Random int from (0-100).
+where
+	(x, y)	= random e
 
 random :: Env -> (Int, Env) 
 random e = (newSeed, {e & seed = newSeed})
