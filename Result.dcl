@@ -1,3 +1,6 @@
 definition module Result
 
-:: Result a = { result :: a, errors :: [String]}
+:: Result a = Res a | Err Errors
+:: Errors :== [String]
+
+isError :: (Result a) -> Bool

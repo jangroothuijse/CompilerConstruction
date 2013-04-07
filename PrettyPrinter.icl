@@ -6,7 +6,7 @@ import Parser
 import Result
 
 prettyPrint :: (Result [Token]) -> String
-prettyPrint {result = [{token = x}:xs]} = " " +++ (p x) +++ (prettyPrint {result = xs, errors = []})
+prettyPrint (Res [{token = x}:xs]) = " " +++ (p x) +++ (prettyPrint (Res xs))
 where
 	p :: Symbol -> String
 	p POpen = "("

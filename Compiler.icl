@@ -13,9 +13,9 @@ import CompilerTest
 toLines :: *File -> Result [String]
 toLines file
 # (line, file) = freadline file
-| size line == 0    =   { result = [], errors = []}
-# {result = r, errors = e} = toLines file
-= { result = [line: r], errors = e }
+| size line == 0    =   Res []
+# (Res r) = toLines file
+= Res [line: r]
 
 //Start :: *World -> String
 Start world
@@ -26,7 +26,7 @@ Start world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # tok = (tokenizer (toLines file))
 # ast = parse tok
-|(isNothing ast.result) = (tok, prettyPrint tok, ast, "", "")
-=   (tok, prettyPrint tok, ast, pretty 0 (fromJust ast.result), foldl (+++) "" (map ((+++) "\n") (analyze splDefaultEnv (fromJust ast.result)).envErrors))
+=case ast of Err e = (tok, prettyPrint tok, ast, "", "")
+			 Res r = (tok, prettyPrint tok, ast, pretty 0 r, foldl (+++) "" (map ((+++) "\n") (analyze splDefaultEnv r).envErrors))
 
 

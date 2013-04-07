@@ -4,7 +4,7 @@ import StdEnv, Tokenizer, Parser, PrettyPrinter, StdList
 //from Tokenizer import :: Token, :: Symbol, :: Operator
 
 toLines :: String -> Result [String]
-toLines s = {result = (toLines_ (fromString s)), errors = []}
+toLines s = Res (toLines_ (fromString s))
 where
 	toLines_ [] = []
 	toLines_ ['\n':s] = toLines_ s
@@ -16,9 +16,9 @@ where
 Start
 #(myProg, _) = progTest (newEnv 6)
 #parseResult = parse (tokenizer (toLines (pretty 0 myProg)))
-|not (isEmpty parseResult.errors) = (False, (pretty 0 myProg), parseResult.errors)
-#progResult = fromJust parseResult.result
-= (progResult === myProg, (pretty 0 myProg), parseResult.errors)
+|isError parseResult = (False, (pretty 0 myProg), parseResult)
+#(Res progResult) = parseResult
+= (progResult === myProg, (pretty 0 myProg), parseResult)
 
 /*
 Start
@@ -45,7 +45,7 @@ randoms e x
 //Start = lesstest 3
 //Start = test 2
 
-test x = filter (\x=x.errors==[]) (map (\x=parse {result = x, errors = []}) (map (map \x={token = x, line = 0, column = 0}) (randomTokens x ++ testStmt x ++ [[KInt, Identifier "fun", POpen, PClose, CBOpen, KReturn, Semicolon, CBClose]])))
+test x = filter (\x=isError x) (map (\x=parse (Res x)) (map (map \x={token = x, line = 0, column = 0}) (randomTokens x ++ testStmt x ++ [[KInt, Identifier "fun", POpen, PClose, CBOpen, KReturn, Semicolon, CBClose]])))
 testStmt = append [KInt, Identifier "fun", POpen, PClose, CBOpen] [CBClose]
 
 append a b i = map (\(x, y, z) = x ++ y ++ z) [(a, t, b) \\ t <- randomTokens i]
@@ -67,7 +67,7 @@ where
 						KFalse, KAssign]
 
 
-lesstest x = filter (\x=x.errors==[]) (map (\x=parse {result = x, errors = []}) (map (map \x={token = x, line = 0, column = 0}) (lessRtokens x ++ lesstestStmt x ++ [[KInt, Identifier "fun", POpen, PClose, CBOpen, KReturn, Semicolon, CBClose]])))
+lesstest x = filter (\x=isError x) (map (\x=parse (Res x)) (map (map \x={token = x, line = 0, column = 0}) (lessRtokens x ++ lesstestStmt x ++ [[KInt, Identifier "fun", POpen, PClose, CBOpen, KReturn, Semicolon, CBClose]])))
 lesstestStmt = lessappend [KInt, Identifier "fun", POpen, PClose, CBOpen] [CBClose]
 
 lessappend a b i = map (\(x, y, z) = x ++ y ++ z) [(a, t, b) \\ t <- lessRtokens i]

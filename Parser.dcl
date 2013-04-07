@@ -24,7 +24,7 @@ import GenEq
 
 :: Priority = PAll | PBlock | PStatement | PBrace
 
-parse :: (Result [Token]) -> Result (Maybe Prog)
+parse :: (Result [Token]) -> Result (Prog)
 
 
 (~>) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
