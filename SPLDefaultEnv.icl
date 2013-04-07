@@ -31,7 +31,7 @@ splDefaultEnv = { ids = [
 			("&&", (TFun (RT TBool) [TBool, TBool]) ),
 			("||", (TFun (RT TBool) [TBool, TBool]) ),
 			
-			(":", (TFun (RT t) [t, TList t]) ),
+			(":", (TFun (RT (TList t)) [t, TList t]) ),
 			("isEmpty", (TFun (RT TBool) [TList t]) ),
 			("hd", (TFun (RT t) [TList t]) ),
 			("tl", (TFun (RT (TList t)) [TList t]) ),
@@ -41,4 +41,4 @@ splDefaultEnv = { ids = [
 			
 			("print", (TFun TVoid [t]) )		
 			],
-	envErrors = [], functionId = Nothing, freshId = 0 }
+	envErrors = [], functionId = Nothing, freshId = 0, subs = id }

@@ -45,13 +45,13 @@ where
 instance analyze Stmt
 where
 	analyze e (Block l) = fa e l
-	analyze e (If exp stmt) = analyzeType (errorsOnly (errorsOnly e stmt) exp) exp TBool
-	analyze e (Ife exp st1 st2) = analyzeType (errorsOnly (errorsOnly (errorsOnly e st2) st1) exp) exp TBool
-	analyze e (While exp stmt) = analyzeType (errorsOnly (errorsOnly e stmt) exp) exp TBool
-	analyze e (Ass i exp) = analyzeType (analyze (idExists i e id) exp) exp (typeFor e i)
+	analyze e (If exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
+	analyze e (Ife exp st1 st2) = typeCheck (errorsOnly (errorsOnly (errorsOnly e st2) st1) exp) exp TBool
+	analyze e (While exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
+	analyze e (Ass i exp) = typeCheck (idExists i e id) exp (typeFor e i)
 	analyze e (SFC f) = analyze e f
-	analyze e Return = returnHelp e	(analyzeType e (returnType (typeFor e (fromJust e.functionId))) TEmpty) 
-	analyze e (Returne exp) = returnHelp e (analyzeType (analyze e exp) exp (returnType (typeFor e ( fromJust e.functionId))))
+	analyze e Return = returnHelp e	(typeCheck e (returnType (typeFor e (fromJust e.functionId))) TEmpty) 
+	analyze e (Returne exp) = returnHelp e (typeCheck (analyze e exp) exp (returnType (typeFor e ( fromJust e.functionId))))
 
 returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return outside of function":e.envErrors]}
 
@@ -68,4 +68,4 @@ where
 	analyze e bool = e
 	
 instance analyze FunCall
-where analyze e f = analyzeType (foldl (errorsOnly) (idExists f.callName e id) f.callArgs) (EFC f) (typeFor e f.callName)
+where analyze e f = e //typeCheck (foldl (errorsOnly) (idExists f.callName e id) f.callArgs) (EFC f) (TId "t")

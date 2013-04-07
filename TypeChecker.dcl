@@ -1,11 +1,9 @@
 definition module TypeChecker
 
-analyzeType :: Env a Type -> Env | typeCheck, toString a
-
 import Parser
 import SemanticAnalyzer
 
-class typeCheck a :: Env a Type -> Bool
+class typeCheck a :: Env a Type -> Env
 instance typeCheck Type
 instance typeCheck Exp
 
