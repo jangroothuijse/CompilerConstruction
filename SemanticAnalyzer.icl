@@ -37,8 +37,9 @@ where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } 
 	
 instance analyze FunDecl
 where 
-	analyze e f = { e & ids = ids2, envErrors = (fa (fa { e & ids = argIds ++ ids2, functionId = Just f.funName } f.vars) f.stmts).envErrors }
+	analyze e f = { e & ids = ids2, envErrors = (fa (fa { e & ids = fixedArgIds ++ ids2, functionId = Just f.funName } f.vars) f.stmts).envErrors }
 	where 
+		fixedArgIds  = [(a.argName, toFixed a.argType) \\ a <- f.args]
 		argIds = [(a.argName, a.argType) \\ a <- f.args]
 		ids2 = [(f.funName, TFun (f.retType) (map snd argIds)):e.ids]
 	
@@ -51,7 +52,7 @@ where
 	analyze e (Ass i exp) = typeCheck (idExists i e id) exp (typeFor e i)
 	analyze e (SFC f) = analyze e f
 	analyze e Return = returnHelp e	(typeCheck e (returnType (typeFor e (fromJust e.functionId))) TEmpty) 
-	analyze e (Returne exp) = returnHelp e (typeCheck (analyze e exp) exp (returnType (typeFor e ( fromJust e.functionId))))
+	analyze e (Returne exp) = returnHelp e (typeCheck (analyze e exp) exp (toFixed (returnType (typeFor e ( fromJust e.functionId)))))
 
 returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return outside of function":e.envErrors]}
 

@@ -33,6 +33,13 @@ allIds (TFun TVoid ta) = flatten (map (allIds) ta)
 allIds (TFun (RT rt) ta) = allIds rt ++ flatten (map (allIds) ta)
 allIds t = []
 
+toFixed :: Type -> Type
+toFixed t = foldl (\t2 i -> replaceId i (TFixed i) t2) t (allIds t)
+
+toFixedReturn :: RetType -> RetType
+toFixedReturn TVoid = TVoid
+toFixedReturn (RT t) = RT (toFixed t)
+
 returnType :: Type -> Type
 returnType (TFun rt _) = case rt of 
 	TVoid		= TEmpty
@@ -43,7 +50,7 @@ argTypes :: Type -> [Type]
 argTypes (TFun _ args) = args
 argTypes t = []
 
-tupleCheck e t = typeCheck e (fst t) (e.subs (snd t))
+tupleCheck e t = typeCheck { e & envErrors = ["argCheck " +++ (toString (fst t)) +++ " of type " +++ (toString (e.subs (snd t))):e.envErrors]} (fst t) (e.subs (snd t))
 
 isTEmpty TEmpty = True
 isTEmpty _ = False
@@ -54,8 +61,14 @@ instance typeCheck Type where
 	typeCheck e TInt TInt = e
 	typeCheck e TEmpty TEmpty = e	// Case of void....please dont ask
 	typeCheck e TBool TBool = e
-	typeCheck e (TTup (a1, a2)) (TTup (b1, b2)) = let e2 = (typeCheck e a2 b2) in typeCheck e2 a1 (e2.subs b1)
+	typeCheck e (TTup (a1, a2)) (TTup (b1, b2)) = let x = { (let e2 = (typeCheck e a2 b2) in typeCheck { e2 & subs = e.subs } a1 b1) & subs = e.subs } in
+												{ x & envErrors = ["Check tuple (" +++ (toString a1) +++ " requiring: " +++ (toString b1) +++
+												", " +++ (toString a2) +++ " requiring: " +++ (toString b2) :x.envErrors] }
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
+	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e { e & envErrors = [j +++ " does not match " +++ i:e.envErrors] }
+	typeCheck e (TId i) (TFixed j) =  { e & subs = (replaceId i (TFixed j)) o e.subs }
+	typeCheck e (TFixed i) (TId j) =  { e & subs = (replaceId j (TFixed i)) o e.subs }
+//	typeCheck e (TId i) (TId j) = if (i == j) e { e & subs = (replaceId i (TFixed j)) o e.subs }
 	typeCheck e found (TId required) = { e & /*envErrors = ["Are you kidding me?" : e.envErrors],*/ subs = (replaceId required found) o e.subs}
 	typeCheck e (TId found) requiredType = { e & subs = (replaceId found requiredType) o e.subs }
 //  To support higher-order functions, we have no syntax to type higher order expression, but if we did, this would type them:
@@ -76,15 +89,16 @@ instance typeCheck Exp where
 	typeCheck e (EInt _) type = typeCheck e TInt type
 	typeCheck e (EBrace exp) type = typeCheck e exp type
 	typeCheck e EBlock type = typeCheck e (TList (TId "t")) type
-	typeCheck e (Tup e1 e2) (TTup (b1, b2)) = typeCheck (typeCheck e e2 b2) e1 b1 
+	typeCheck e (Tup a1 a2) (TTup (b1, b2)) = { let e2 = (typeCheck e a2 b2) in typeCheck { e2 & subs = e.subs } a1 b1 & subs = e.subs }
 	typeCheck e EFalse type = typeCheck e TBool type
 	typeCheck e ETrue type = typeCheck e TBool type
 	typeCheck e (EFC f) type =  if (isTEmpty funType) { e & envErrors = [f.callName +++ " undefined":e.envErrors] }
 								{ foldl tupleCheck e2 [(a, b) \\ a <- f.callArgs & b <- argTypes funType] & subs = e.subs }
 	where
-		funType = typeFor e f.callName
-		freeFunType = foldl (\e i -> let (e2, fresh) = (freshId e) in { e2 & subs = (replaceId i (TId fresh)) o e2.subs }) e (allIds funType)
-		e2 = typeCheck e (returnType funType) type  // e2 may have new restrictions in typeVars
+		funType = (typeFor e f.callName)
+		e1 = foldl (\e i -> let (e2, fresh) = (freshId e) in { e2 & subs = (replaceId i (TId fresh)) o e2.subs }) e (allIds funType)
+		e2 = typeCheck { e1 & envErrors = ["Typing " +++ f.callName +++ " requiring type: " +++ (toString (e1.subs funType)):e.envErrors]} 
+			(returnType (e1.subs funType)) type  // e2 may have new restrictions in typeVars
 
 exampleType = (TFun (RT (TList (TId "t"))) [TId "t", TList (TId "t")])
 exampleEnv = (typeCheck splDefaultEnv (Op2 ETrue PCons EBlock) (TList TInt))
