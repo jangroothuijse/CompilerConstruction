@@ -62,8 +62,8 @@ instance typeCheck Type where
 	typeCheck e TEmpty TEmpty = e	// Case of void....please dont ask
 	typeCheck e TBool TBool = e
 	typeCheck e (TTup (a1, a2)) (TTup (b1, b2)) = let x = { (let e2 = (typeCheck e a2 b2) in typeCheck { e2 & subs = e.subs } a1 b1) & subs = e.subs } in
-												{ x & envErrors = ["Check tuple (" +++ (toString a1) +++ " requiring: " +++ (toString b1) +++
-												", " +++ (toString a2) +++ " requiring: " +++ (toString b2) :x.envErrors] }
+												{ x & envErrors = ["Check tuple " +++ (toString a1) +++ " requiring: " +++ (toString b1) +++
+												" AND " +++ (toString a2) +++ " requiring: " +++ (toString b2) :x.envErrors] }
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
 	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e { e & envErrors = [j +++ " does not match " +++ i:e.envErrors] }
 	typeCheck e (TId i) (TFixed j) =  { e & subs = (replaceId i (TFixed j)) o e.subs }
@@ -77,7 +77,7 @@ instance typeCheck Type where
 //													{ e2 & envErrors = ["Returntypes don't match or invalid number of arguments":e2.envErrors]})
 //												[(x , y) \\ x <- tl1 & y <- tl2]
 //												where e2 = returnTypeCheck e rt1 rt2
-	typeCheck e a b = { e & envErrors = [(toString a) +++ " does not match " +++ (toString b):e.envErrors] }
+	typeCheck e a b = { e & envErrors = ["\nTYPE ERROR " +++ (toString a) +++ " does not match " +++ (toString b):e.envErrors] }
 
 instance typeCheck Exp where
 	typeCheck e (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) { e & envErrors = [i +++ "undefined": e.envErrors] } (typeCheck e vt type))
