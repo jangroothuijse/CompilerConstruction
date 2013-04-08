@@ -64,10 +64,12 @@ argTypes :: Type -> [Type]
 argTypes (TFun _ args) = args
 argTypes t = []
 
-tupleCheck e t = typeCheck { e & envErrors = ["argCheck " +++ (toString (fst t)) +++ " of type " +++ (toString (e.subs (snd t))):e.envErrors]} (fst t) (e.subs (snd t))
+tupleCheck e t = typeCheck e (fst t) (e.subs (snd t))
 
 isTEmpty TEmpty = True
 isTEmpty _ = False
+
+typingError e = "TYPING ERROR on line " +++ (toString e.envLine) +++ " column " +++ (toString e.envColumn) +++ ": "
 
 // second type will be the required type
 // So typeCheck a b, checks if a meets the requirements of b
@@ -75,26 +77,24 @@ instance typeCheck Type where
 	typeCheck e TInt TInt = e
 	typeCheck e TEmpty TEmpty = e	// Case of void....please dont ask
 	typeCheck e TBool TBool = e
-	typeCheck e (TTup (a1, a2)) (TTup (b1, b2)) = let x = { (let e2 = (typeCheck e a2 b2) in typeCheck { e2 & subs = e.subs } a1 b1) & subs = e.subs } in
-												{ x & envErrors = ["Check tuple " +++ (toString a1) +++ " requiring: " +++ (toString b1) +++
-												" AND " +++ (toString a2) +++ " requiring: " +++ (toString b2) :x.envErrors] }
+	typeCheck e (TTup (a1, a2)) (TTup (b1, b2)) = { (let e2 = (typeCheck e a2 b2) in typeCheck { e2 & subs = e.subs } a1 b1) & subs = e.subs }
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
-	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e { e & envErrors = ["\n!! TYPE ERROR !! " +++ j +++ " does not match " +++ i:e.envErrors] }
+	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e { e & envErrors = [typingError e +++ j +++ " does not match " +++ i:e.envErrors] }
 	typeCheck e found (TId required) = { e & subs = (replaceId required found) o e.subs}
 	typeCheck e (TId found) requiredType = { e & subs = (replaceId found requiredType) o e.subs }
 //  To support higher-order functions, we have no syntax to type higher order expression, but if we did, this would type them:
 //	typeCheck e (TFun rt1 tl1) (TFun rt2 tl2) = foldl tupleCheck
-//												(if (length tl1 == length tl2) e2
-//													{ e2 & envErrors = ["Returntypes don't match or invalid number of arguments":e2.envErrors]})
-//												[(x , y) \\ x <- tl1 & y <- tl2]
-//												where e2 = returnTypeCheck e rt1 rt2
-	typeCheck e a b = { e & envErrors = ["\n!! TYPE ERROR !! " +++ (toString a) +++ " does not match " +++ (toString b):e.envErrors] }
+//									(if (length tl1 == length tl2) e2
+//									{ e2 & envErrors = [typingError e +++ "Returntypes don't match or invalid number of arguments":e2.envErrors]})
+//									[(x , y) \\ x <- tl1 & y <- tl2]
+//									where e2 = returnTypeCheck e rt1 rt2
+	typeCheck e a b = { e & envErrors = [typingError e +++ (toString a) +++ " does not match " +++ (toString b):e.envErrors] }
 
 instance typeCheck Exp where
 	typeCheck e {ex = ex} t = typeCheck e ex t
 
 instance typeCheck Exp2 where
-	typeCheck e (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) { e & envErrors = [i +++ "undefined": e.envErrors] } (typeCheck e vt type))
+	typeCheck e (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) { e & envErrors = [typingError e +++ i +++ "undefined": e.envErrors] } (typeCheck e vt type))
 	typeCheck e (Op2 e1 op e2) type = typeCheck e (EFC { callName = (toString op), callArgs = [e1, e2] }) type
 	typeCheck e (Op1 op1 e1) type = typeCheck e (EFC { callName = toId op1, callArgs = [e1] }) type
 	where 
@@ -106,9 +106,9 @@ instance typeCheck Exp2 where
 	typeCheck e (Tup a1 a2) (TTup (b1, b2)) = { let e2 = (typeCheck e a2 b2) in typeCheck { e2 & subs = e.subs } a1 b1 & subs = e.subs }
 	typeCheck e EFalse type = typeCheck e TBool type
 	typeCheck e ETrue type = typeCheck e TBool type
-	typeCheck e (EFC f) type =  if (isTEmpty funType) { e & envErrors = [f.callName +++ " undefined":e.envErrors] }
+	typeCheck e (EFC f) type =  if (isTEmpty funType) { e & envErrors = [typingError e +++ f.callName +++ " undefined":e.envErrors] }
 								if (length f.callArgs <> length aTypes)
-								{ e & envErrors = [f.callName +++ " used with wrong arity":e.envErrors] }
+								{ e & envErrors = [typingError e +++ f.callName +++ " used with wrong arity":e.envErrors] }
 								{ foldl tupleCheck e2 [(a, b) \\ a <- f.callArgs & b <- aTypes] & subs = e.subs }
 	where
 		aTypes = argTypes freshFunType
@@ -117,14 +117,7 @@ instance typeCheck Exp2 where
 						(\et i -> let (e2, fresh) = (freshId (fst et)) in (e2, replaceId i (TId fresh) (snd et)))
 						(e, funType)
 						(allIds funType)
-		e2 = typeCheck { e1 & envErrors = ["Typing " +++ f.callName +++ " requiring type: " +++ (toString freshFunType):e.envErrors]} 
-			(returnType freshFunType) type  // e2 may have new restrictions in typeVars
-
-exampleType = (TFun (RT (TList (TId "t"))) [TId "t", TList (TId "t")])
-exampleEnv = (typeCheck splDefaultEnv ({ex = Op2 {ex = ETrue, eline = 0, ecolumn = 0} PCons {ex = EBlock, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}) (TList TInt))
-
-exampleType2 = TTup (TId "a", TId "b")
-exampleExp = {ex = Tup {ex = ETrue, eline = 0, ecolumn = 0} {ex = EInt 5, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}
+		e2 = typeCheck e1 (returnType freshFunType) type  // e2 may have new restrictions in typeVars
 
 class returnCheck a :: a -> Result Bool
 
@@ -137,19 +130,16 @@ instance returnCheck Prog where
 	returnCheck [] = Res True
 
 instance returnCheck Decl where
-	returnCheck (F {funName = n, retType = RT _, stmts = stmts})
-	=case returnChecks stmts of
+	returnCheck (F {funName = n, retType = RT _, stmts = stmts}) = case returnChecks stmts of
 		Res False = Err ["Function " +++ n +++ " doesn't return."]
 		other     = other
-	returnCheck (F {stmts = stmts})
-	=returnChecks stmts
+	returnCheck (F {stmts = stmts}) = returnChecks stmts
 	returnCheck _ = Res True
 
 instance returnCheck Stmt where
 	returnCheck (Block stmts) = returnChecks stmts
 	returnCheck (If _ stmt) = returnCheck stmt
-	returnCheck (Ife _ stmt stmt2)
-	=case returnCheck stmt of
+	returnCheck (Ife _ stmt stmt2) = case returnCheck stmt of
 		Res True = returnCheck stmt2
 		Res False = case returnCheck stmt2 of
 						Res _ = Res False
@@ -171,11 +161,12 @@ returnChecks [x:xs] = case returnCheck x of
 							other = other
 returnChecks [] = Res False
 
+
+exampleType = (TFun (RT (TList (TId "t"))) [TId "t", TList (TId "t")])
+exampleEnv = (typeCheck splDefaultEnv ({ex = Op2 {ex = ETrue, eline = 0, ecolumn = 0} PCons {ex = EBlock, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}) (TList TInt))
+
+exampleType2 = TTup (TId "a", TId "b")
+exampleExp = {ex = Tup {ex = ETrue, eline = 0, ecolumn = 0} {ex = EInt 5, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}
+
 Start = typeCheck splDefaultEnv exampleExp exampleType2
 //(exampleEnv.envErrors, "\n", (replaceId "t" TBool o id) exampleType, "\n", exampleEnv.subs exampleType)
-
-
-
-
-
-
