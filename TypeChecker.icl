@@ -84,10 +84,10 @@ instance typeCheck Type where
 												" AND " +++ (toString a2) +++ " requiring: " +++ (toString b2) :x.envErrors] }
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
 	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e { e & envErrors = ["\n!! TYPE ERROR !! " +++ j +++ " does not match " +++ i:e.envErrors] }
-	typeCheck e (TId i) (TFixed j) =  { e & subs = (replaceId i (TFixed j)) o e.subs }
-	typeCheck e (TFixed i) (TId j) =  { e & subs = (replaceId j (TFixed i)) o e.subs }
+//	typeCheck e (TId i) (TFixed j) =  { e & subs = (replaceId i (TFixed j)) o e.subs }
+//	typeCheck e (TFixed i) (TId j) =  { e & subs = (replaceId j (TFixed i)) o e.subs }
 //	typeCheck e (TId i) (TId j) = if (i == j) e { e & subs = (replaceId i (TFixed j)) o e.subs }
-	typeCheck e found (TId required) = { e & /*envErrors = ["Are you kidding me?" : e.envErrors],*/ subs = (replaceId required found) o e.subs}
+	typeCheck e found (TId required) = { e & subs = (replaceId required found) o e.subs}
 	typeCheck e (TId found) requiredType = { e & subs = (replaceId found requiredType) o e.subs }
 //  To support higher-order functions, we have no syntax to type higher order expression, but if we did, this would type them:
 //	typeCheck e (TFun rt1 tl1) (TFun rt2 tl2) = foldl tupleCheck
@@ -111,8 +111,11 @@ instance typeCheck Exp where
 	typeCheck e EFalse type = typeCheck e TBool type
 	typeCheck e ETrue type = typeCheck e TBool type
 	typeCheck e (EFC f) type =  if (isTEmpty funType) { e & envErrors = [f.callName +++ " undefined":e.envErrors] }
-								{ foldl tupleCheck e2 [(a, b) \\ a <- f.callArgs & b <- argTypes freshFunType] & subs = e.subs }
+								if (length f.callArgs <> length aTypes)
+								{ e & envErrors = [f.callName +++ " used with wrong arity":e.envErrors] }
+								{ foldl tupleCheck e2 [(a, b) \\ a <- f.callArgs & b <- aTypes] & subs = e.subs }
 	where
+		aTypes = argTypes freshFunType
 		funType = (typeFor e f.callName)
 		(e1, freshFunType) = foldl 
 						(\et i -> let (e2, fresh) = (freshId (fst et)) in (e2, replaceId i (TId fresh) (snd et)))

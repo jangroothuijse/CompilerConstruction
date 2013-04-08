@@ -50,7 +50,7 @@ where
 	analyze e (Ife exp st1 st2) = typeCheck (errorsOnly (errorsOnly (errorsOnly e st2) st1) exp) exp TBool
 	analyze e (While exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
 	analyze e (Ass i exp) = typeCheck (idExists i e id) exp (typeFor e i)
-	analyze e (SFC f) = analyze e f
+	analyze e (SFC f) = typeCheck (analyze e f) (EFC f) TEmpty
 	analyze e Return = returnHelp e	(typeCheck e (returnType (typeFor e (fromJust e.functionId))) TEmpty) 
 	analyze e (Returne exp) = returnHelp e (typeCheck (analyze e exp) exp (toFixed (returnType (typeFor e ( fromJust e.functionId)))))
 
@@ -63,7 +63,7 @@ where
 	analyze e (Op1 op exp) = errorsOnly e exp
 	analyze e (EInt i) = e	
 	analyze e (EBrace exp) = analyze e exp
-	analyze e (EFC f) = analyze e f
+	analyze e (EFC f) = analyze e f // <- typeChecked as part of a statement
 	analyze e EBlock = e
 	analyze e (Tup e1 e2) = errorsOnly (errorsOnly e e1) e2
 	analyze e bool = e
