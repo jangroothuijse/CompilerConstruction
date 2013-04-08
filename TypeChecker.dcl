@@ -6,6 +6,7 @@ import SemanticAnalyzer
 class typeCheck a :: Env a Type -> Env
 instance typeCheck Type
 instance typeCheck Exp
+instance typeCheck Exp2
 
 toFixed :: Type -> Type
 toFixedReturn :: RetType -> RetType

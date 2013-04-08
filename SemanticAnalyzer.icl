@@ -58,6 +58,10 @@ returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return outside of
 
 instance analyze Exp
 where 
+	analyze e {ex = ex} = analyze e ex
+
+instance analyze Exp2
+where 
 	analyze e (I i) = idExists i e id
 	analyze e (Op2 e1 op e2) = errorsOnly (errorsOnly e e1) e1
 	analyze e (Op1 op exp) = errorsOnly e exp

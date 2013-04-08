@@ -242,7 +242,7 @@ parseConsExp rs
 #	(t, e, rs)		= parseAndExp rs
 |	isNothing t 	= (Nothing, e, rs) ~>. cantParse rs "ConsExpression"
 =	case rs of
-	[{token = Op Cons}:rs] = if (isJust t2) (Just (Op2 (fromJust t) PCons (fromJust t2)), e2 ++ e, rrs) (Nothing, e2 ++ e, rrs)
+	[{token = Op Cons, line = l, column = c}:rs] = if (isJust t2) (Just ({ex = Op2 (fromJust t) PCons (fromJust t2), eline = l, ecolumn = c}), e2 ++ e, rrs) (Nothing, e2 ++ e, rrs)
 	where (t2, e2, rrs) = parseConsExp rs
 	_					= (t, e, rs)
 
@@ -251,7 +251,7 @@ parseAndExp rs
 #	(t, e, rs) 		= parseOrExp rs
 |	isNothing t		= (Nothing, e, rs)
 =	case rs of
-	[{token = Op And}:rrs]	= if (isJust t2) (Just (Op2 (fromJust t) PAnd (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
+	[{token = Op And, line = l, column = c}:rrs]	= if (isJust t2) (Just ({ex = Op2 (fromJust t) PAnd (fromJust t2), eline = l, ecolumn = c}), e2 ++ e, rs2) (Nothing, e, rs)	
 	where (t2, e2, rs2) = parseAndExp rrs
 	_				= (t, e, rs)
 	
@@ -260,7 +260,7 @@ parseOrExp rs
 #	(t, e, rs) 		= parseRelExp rs
 |	isNothing t		= (Nothing, e, rs)
 =	case rs of
-	[{token = Op Or}:rrs]	= if (isJust t2) (Just (Op2 (fromJust t) POr (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
+	[{token = Op Or, line = l, column = c}:rrs]	= if (isJust t2) (Just {ex = Op2 (fromJust t) POr (fromJust t2), eline = l, ecolumn = c}, e2 ++ e, rs2) (Nothing, e, rs)	
 	where (t2, e2, rs2) = parseOrExp rrs
 	_				= (t, e, rs)
 
@@ -270,7 +270,7 @@ parseRelExp rs
 |	isNothing t 	= (Nothing, e, rs) ~>. cantParse rs "RelExpression"
 #	exp1 			= fromJust t
 = 	case rs of
-	[{token = Op op}:rrs] = case op of
+	[{token = Op op, line = l, column = c}:rrs] = case op of
 		Eq	= emitOperator PEq
 		LT	= emitOperator PLT
 		GT	= emitOperator PGT
@@ -281,7 +281,7 @@ parseRelExp rs
 	where
 		(t2, e2, rs2) = parseRelExp rrs
 		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
-		emitOperator operator = if (isJust t2) (Just (Op2 exp1 operator (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
+		emitOperator operator = if (isJust t2) (Just ({ex = Op2 exp1 operator (fromJust t2), eline = l, ecolumn = c}), e2 ++ e, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)
 
 parseSum :: [Token] -> (Maybe Exp, [String], [Token])
@@ -290,14 +290,14 @@ parseSum rs
 |	isNothing t	= (Nothing, e, rs) ~>. cantParse rs "SumExpression"
 #	term1			= fromJust t
 =	case rs of
-	[{token = Op op}:rrs] = case op of
+	[{token = Op op, line = l, column = c}:rrs] = case op of
 		Plus	= emitOperator PPlus
 		Min		= emitOperator PMin
 		_ 		= (t, e, rs)
 	where
 		(t2, e2, rs2) = parseSum rrs
 		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
-		emitOperator operator = if (isJust t2) (Just (Op2 term1 operator (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
+		emitOperator operator = if (isJust t2) (Just ({ex = Op2 term1 operator (fromJust t2), eline = l, ecolumn = c}), e2 ++ e, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)	
 
 parseTerm :: [Token] -> (Maybe Exp, [String], [Token])
@@ -306,7 +306,7 @@ parseTerm rs
 |	isNothing t	= (Nothing, e, rs) ~>. cantParse rs "Term"
 #	fact1			= fromJust t
 =	case rs of
-	[{token = Op op}:rrs] = case op of
+	[{token = Op op, line = l, column = c}:rrs] = case op of
 		Mul		= emitOperator PMul
 		Div		= emitOperator PDiv
 		Mod		= emitOperator PMod
@@ -314,43 +314,43 @@ parseTerm rs
 	where
 		(t2, e2, rs2) = parseTerm rrs
 		emitOperator :: Op2 -> (Maybe Exp, [String], [Token])
-		emitOperator operator = if (isJust t2) (Just (Op2 fact1 operator (fromJust t2)), e2 ++ e, rs2) (Nothing, e, rs)	
+		emitOperator operator = if (isJust t2) (Just ({ex = Op2 fact1 operator (fromJust t2), eline = l, ecolumn = c}), e2 ++ e, rs2) (Nothing, e, rs)	
 	_	=	(t, e, rs)	
 	
 parseFactor :: [Token] -> (Maybe Exp, [String], [Token])
-parseFactor [{token = Op Not}:rs]
+parseFactor [{token = Op Not, line = l, column = c}:rs]
 #	(t, e, rs)		= parseFactor rs
-|	isJust t		= (Just (Op1 PNot (fromJust t)), e, rs)
+|	isJust t		= (Just {ex = Op1 PNot (fromJust t), eline = l, ecolumn = c}, e, rs)
 					= (Nothing, e, rs) ~>. cantParse rs "Factor"
-parseFactor [{token = Op Min}:rs]
+parseFactor [{token = Op Min, line = l, column = c}:rs]
 #	(t, e, rs)		= parseFactor rs
-|	isJust t		= (Just (Op1 PNeg (fromJust t)), e, rs)
+|	isJust t		= (Just {ex = Op1 PNeg (fromJust t), eline = l, ecolumn = c}, e, rs)
 					= (Nothing, e, rs) ~>. cantParse rs "Factor"
-parseFactor [{token = Integer z}:rs] = (Just (EInt z), [], rs)
-parseFactor [{token = KTrue}:rs] = (Just ETrue, [], rs)
-parseFactor [{token = KFalse}:rs] = (Just ETrue, [], rs)
+parseFactor [{token = Integer z, line = l, column = c}:rs] = (Just {ex = EInt z, eline = l, ecolumn = c}, [], rs)
+parseFactor [{token = KTrue, line = l, column = c}:rs] = (Just {ex = ETrue, eline = l, ecolumn = c}, [], rs)
+parseFactor [{token = KFalse, line = l, column = c}:rs] = (Just {ex = ETrue, eline = l, ecolumn = c}, [], rs)
 parseFactor [{token = POpen}:rs] // Parentheses AND Tuples...
 # 	(t, e, rs)		= parseExp rs
 |	isJust t		= case rs of 
-	[{token = Comma}:rrs] = case r.token of
-		PClose	= if (isJust t2) (Just (Tup (fromJust t) (fromJust t2)), e2 ++ e, rrrs) (Nothing, e2 ++ e, rrrs)
+	[{token = Comma, line = l, column = c}:rrs] = case r.token of
+		PClose	= if (isJust t2) (Just {ex = Tup (fromJust t) (fromJust t2), eline = l, ecolumn = c}, e2 ++ e, rrrs) (Nothing, e2 ++ e, rrrs)
 		x = (Nothing, e2 ++ e, rs) ~>. cantParse rs ")"
 	where (t2, e2, [r:rrrs]) = parseExp rrs
-	[{token = PClose}:rrs] 	= (Just (EBrace (fromJust t)), e, rrs)
+	[{token = PClose, line = l, column = c}:rrs] 	= (Just {ex = EBrace (fromJust t), eline = l, ecolumn = c}, e, rrs)
 	_						= (Nothing, e, rs) ~>. cantParse rs ")"
 =	(t, e, rs)
 parseFactor [{token = SBOpen}:rs] = case rs of 
-	[{token = SBClose}: rrs]	= (Just EBlock, [], rrs)
+	[{token = SBClose, line = l, column = c}: rrs]	= (Just {ex = EBlock, eline = l, ecolumn = c}, [], rrs)
 	x							= cantParse rs "[]" rs
 parseFactor x = parseIdAndCall x
 
 parseIdAndCall :: [Token] -> (Maybe Exp, [String], [Token])
-parseIdAndCall [{token = Identifier name}:rs] = case rs of
+parseIdAndCall [{token = Identifier name, line = l, column = c}:rs] = case rs of
 	[{token = POpen}:rrs]
 	#(t, e,rs) = parsePOpen rs ~>- parseActArgs_ ~> parsePClose
 	|isNothing t = (Nothing, e, rs)
-	= (Just (EFC { callName = name, callArgs = fromJust t }), e, rs)
-	_						= (Just (I name), [], rs)		// ID
+	= (Just {ex = EFC { callName = name, callArgs = fromJust t }, eline = l, ecolumn = c}, e, rs)
+	_						= (Just ({ex = I name, eline = l, ecolumn = c}), [], rs)		// ID
 parseIdAndCall x = cantParse x "Id or Call" x
  
 parseSemicolon :: [Token] -> (Maybe Bool, [String], [Token])
@@ -444,5 +444,5 @@ ParseError e rs = (Nothing, [e], rs)
 #(t2, e2, rs)	= p2 rs
 =(Nothing, e2 ++ e, rs)
 	
-derive gEq Decl, FunDecl, VarDecl, Stmt, FArg, RetType, Exp, Type, FunCall, Op1, Op2
+derive gEq Decl, FunDecl, VarDecl, Stmt, FArg, RetType, Exp, Exp2, Type, FunCall, Op1, Op2
 
