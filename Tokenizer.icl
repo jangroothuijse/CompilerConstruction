@@ -39,12 +39,12 @@ where
 	=	Just (xxs, [{ token = Integer i, line = y.l, column = y.col }])
 	
 tokenizeId :: [CharMeta] -> Maybe ([CharMeta], [Token])
-tokenizeId [y:ys] = if (isAlpha y.c) (f {y.c} ys) Nothing
+tokenizeId [y:ys] = if (isAlpha y.c || y.c == '_') (f {y.c} ys) Nothing
 where
 	f :: String [CharMeta] -> Maybe ([CharMeta], [Token])
 	f name [] = Just ([], [{ token = Identifier name, line = y.l, column = y.col }])
 	f name xxs=:[x:xs]
-	|	isAlphanum x.c = f (name +++ {x.c}) xs
+	|	(isAlphanum x.c || x.c == '_') = f (name +++ {x.c}) xs
 	=	Just (xxs, [{ token = Identifier name, line = y.l,column = y.col }])
 	
 tokenizeFail :: [CharMeta] -> Maybe ([CharMeta], [Token])

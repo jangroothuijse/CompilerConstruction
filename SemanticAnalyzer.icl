@@ -10,6 +10,11 @@ fa = foldl (analyze)
 
 errorsOnly e s = { e & envErrors = (analyze e s).envErrors }
 
+//class checkReturn a :: Bool a -> Bool TODOTHIS
+
+//checkReturn :: Bool [Stmt] -> Bool
+//checkReturn stmt
+
 idExists :: Id Env (Env -> Env) -> Env
 idExists i e c = f e.ids
 where
