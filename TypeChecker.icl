@@ -16,7 +16,6 @@ returnTypeCheck e _ _ = { e & envErrors = ["Unexpecting Void found" :e.envErrors
 
 class replaceId a :: Id Type a -> a
 
-
 instance replaceId Type
 where
 	replaceId i t (TId j) = if (j == i) t (TId j)
@@ -47,9 +46,6 @@ instance allIds Type where
 instance allIds RetType where
 	allIds TVoid = []
 	allIds (RT t) = allIds t
-
-//allFresh :: Type Env -> (Env, Type)
-//allFresh t e = foldl (\
 
 toFixed :: Type -> Type
 toFixed t = foldl (\t2 i -> replaceId i (TFixed i) t2) t (allIds t)
@@ -84,9 +80,6 @@ instance typeCheck Type where
 												" AND " +++ (toString a2) +++ " requiring: " +++ (toString b2) :x.envErrors] }
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
 	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e { e & envErrors = ["\n!! TYPE ERROR !! " +++ j +++ " does not match " +++ i:e.envErrors] }
-//	typeCheck e (TId i) (TFixed j) =  { e & subs = (replaceId i (TFixed j)) o e.subs }
-//	typeCheck e (TFixed i) (TId j) =  { e & subs = (replaceId j (TFixed i)) o e.subs }
-//	typeCheck e (TId i) (TId j) = if (i == j) e { e & subs = (replaceId i (TFixed j)) o e.subs }
 	typeCheck e found (TId required) = { e & subs = (replaceId required found) o e.subs}
 	typeCheck e (TId found) requiredType = { e & subs = (replaceId found requiredType) o e.subs }
 //  To support higher-order functions, we have no syntax to type higher order expression, but if we did, this would type them:

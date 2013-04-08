@@ -11,11 +11,6 @@ fa = foldl (analyze)
 
 errorsOnly e s = { e & envErrors = (analyze e s).envErrors }
 
-//class checkReturn a :: Bool a -> Bool TODOTHIS
-
-//checkReturn :: Bool [Stmt] -> Bool
-//checkReturn stmt
-
 idExists :: Id Env (Env -> Env) -> Env
 idExists i e c = f e.ids
 where
@@ -28,17 +23,16 @@ where
 	f [] i = TEmpty	
 	f [(x, xType):xs] i = if (x == i) xType (f xs i)
 
-
 staticAnalyze :: (Result Prog) -> Result (Prog, Env)
 staticAnalyze (Res p)
-#env=:{envErrors = er}	= analyze splDefaultEnv p
-#rc						= returnCheck p
-|isEmpty er =case rc of
+# env=:{envErrors = er}	= analyze splDefaultEnv p
+# rc					= returnCheck p
+| isEmpty er =	case rc of
 				Res _ = Res (p, env)
 				Err e = Err e
-=case rc of
-	Res _ = Err er
-	Err e = Err (er ++ e)
+			 =	case rc of
+					Res _ = Err er
+					Err e = Err (er ++ e)
 staticAnalyze (Err p) = Err p
 
 class analyze a :: Env a -> Env
@@ -51,16 +45,14 @@ where
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f	
 
-instance analyze VarDecl
-where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } v.exp) v.exp v.type
+instance analyze VarDecl where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } v.exp) v.exp v.type
 	
 instance analyze FunDecl
 where 
 	analyze e f = { e & ids = ids2, envErrors = (fa (fa { e & ids = fixedArgIds ++ ids2, functionId = Just f.funName } f.vars) f.stmts).envErrors }
 	where 
 		fixedArgIds  = [(a.argName, toFixed a.argType) \\ a <- f.args]
-		argIds = [(a.argName, a.argType) \\ a <- f.args]
-		ids2 = [(f.funName, TFun (f.retType) (map snd argIds)):e.ids]
+		ids2 = [(f.funName, TFun (f.retType) [a.argType \\ a <- f.args]):e.ids]
 	
 instance analyze Stmt
 where
@@ -75,9 +67,7 @@ where
 
 returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return outside of function":e.envErrors]}
 
-instance analyze Exp
-where 
-	analyze e {ex = ex} = analyze e ex
+instance analyze Exp where analyze e {ex = ex} = analyze e ex
 
 instance analyze Exp2
 where 
