@@ -138,7 +138,7 @@ class returnCheck a :: a -> Result Bool
 instance returnCheck Prog where
 	returnCheck [x:xs] = case returnCheck x of
 								Res _ = returnCheck xs
-								Err e    = case returnCheck x of
+								Err e    = case returnCheck xs of
 												Res _ = Err e
 												Err es = Err (e ++ es)
 	returnCheck [] = Res True
@@ -172,8 +172,9 @@ instance returnCheck Stmt where
 
 returnChecks :: [Stmt] -> Result Bool
 returnChecks [x:[]] = returnCheck x
-returnChecks [x:_] = case returnCheck x of
+returnChecks [x:xs] = case returnCheck x of
 							Res True = Err ["Unreachable code"]
+							Res False = returnChecks xs
 							other = other
 returnChecks [] = Res False
 
