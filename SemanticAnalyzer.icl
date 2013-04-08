@@ -67,7 +67,7 @@ where
 
 returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return outside of function":e.envErrors]}
 
-instance analyze Exp where analyze e {ex = ex} = analyze e ex
+instance analyze Exp where analyze e exp = analyze  { e & envLine = exp.eline, envColumn = exp.ecolumn } exp.ex
 
 instance analyze Exp2
 where 
