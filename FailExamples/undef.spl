@@ -1,0 +1,6 @@
+Void haha2() { return; }
+
+Void main ()
+{
+    haha2(1);
+}
