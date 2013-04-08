@@ -14,24 +14,42 @@ returnTypeCheck e TVoid TVoid = e
 returnTypeCheck e (RT type1) (RT type2) = typeCheck e type1 type2
 returnTypeCheck e _ _ = { e & envErrors = ["Unexpecting Void found" :e.envErrors] }
 
-replaceId :: Id Type Type -> Type
-replaceId i t (TId j) = if (j == i) t (TId j)
-replaceId i t (TTup (a, b)) = TTup (replaceId i t a, replaceId i t b)
-replaceId i t (TList l) = TList (replaceId i t l)
-replaceId i t (TFun TVoid ta) = TFun TVoid (map (replaceId i t) ta)
-replaceId i t (TFun (RT rt) ta) = TFun (RT (replaceId i t rt)) (map (replaceId i t) ta)
-replaceId i t1 t2 = t2 // TInt etc are unaffected
+class replaceId a :: Id Type a -> a
+
+
+instance replaceId Type
+where
+	replaceId i t (TId j) = if (j == i) t (TId j)
+	replaceId i t (TTup (a, b)) = TTup (replaceId i t a, replaceId i t b)
+	replaceId i t (TList l) = TList (replaceId i t l)
+	replaceId i t (TFun TVoid ta) = TFun TVoid (map (replaceId i t) ta)
+	replaceId i t (TFun (RT rt) ta) = TFun (RT (replaceId i t rt)) (map (replaceId i t) ta)
+	replaceId i t1 t2 = t2 // TInt etc are unaffected
+
+instance replaceId RetType
+where
+	replaceId i t TVoid = TVoid
+	replaceId i t (RT t2) = RT (replaceId i t t2)
 
 freshId :: Env -> (Env, Id)
 freshId e = ({ e & freshId = e.freshId + 1 }, "#" +++ (toString e.freshId))
 
-allIds :: Type -> [Id]
-allIds (TId i) = [i]
-allIds (TTup (a, b)) = allIds a ++ (allIds b)
-allIds (TList l) = allIds l
-allIds (TFun TVoid ta) = flatten (map (allIds) ta)
-allIds (TFun (RT rt) ta) = allIds rt ++ flatten (map (allIds) ta)
-allIds t = []
+class allIds a :: a -> [Id]
+
+instance allIds Type where
+	allIds (TId i) = [i]
+	allIds (TTup (a, b)) = allIds a ++ (allIds b)
+	allIds (TList l) = allIds l
+	allIds (TFun TVoid ta) = flatten (map (allIds) ta)
+	allIds (TFun (RT rt) ta) = allIds rt ++ flatten (map (allIds) ta)
+	allIds t = []
+
+instance allIds RetType where
+	allIds TVoid = []
+	allIds (RT t) = allIds t
+
+//allFresh :: Type Env -> (Env, Type)
+//allFresh t e = foldl (\
 
 toFixed :: Type -> Type
 toFixed t = foldl (\t2 i -> replaceId i (TFixed i) t2) t (allIds t)
@@ -65,7 +83,7 @@ instance typeCheck Type where
 												{ x & envErrors = ["Check tuple " +++ (toString a1) +++ " requiring: " +++ (toString b1) +++
 												" AND " +++ (toString a2) +++ " requiring: " +++ (toString b2) :x.envErrors] }
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
-	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e { e & envErrors = [j +++ " does not match " +++ i:e.envErrors] }
+	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e { e & envErrors = ["\n!! TYPE ERROR !! " +++ j +++ " does not match " +++ i:e.envErrors] }
 	typeCheck e (TId i) (TFixed j) =  { e & subs = (replaceId i (TFixed j)) o e.subs }
 	typeCheck e (TFixed i) (TId j) =  { e & subs = (replaceId j (TFixed i)) o e.subs }
 //	typeCheck e (TId i) (TId j) = if (i == j) e { e & subs = (replaceId i (TFixed j)) o e.subs }
@@ -77,7 +95,7 @@ instance typeCheck Type where
 //													{ e2 & envErrors = ["Returntypes don't match or invalid number of arguments":e2.envErrors]})
 //												[(x , y) \\ x <- tl1 & y <- tl2]
 //												where e2 = returnTypeCheck e rt1 rt2
-	typeCheck e a b = { e & envErrors = ["\nTYPE ERROR " +++ (toString a) +++ " does not match " +++ (toString b):e.envErrors] }
+	typeCheck e a b = { e & envErrors = ["\n!! TYPE ERROR !! " +++ (toString a) +++ " does not match " +++ (toString b):e.envErrors] }
 
 instance typeCheck Exp where
 	typeCheck e (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) { e & envErrors = [i +++ "undefined": e.envErrors] } (typeCheck e vt type))
@@ -93,12 +111,15 @@ instance typeCheck Exp where
 	typeCheck e EFalse type = typeCheck e TBool type
 	typeCheck e ETrue type = typeCheck e TBool type
 	typeCheck e (EFC f) type =  if (isTEmpty funType) { e & envErrors = [f.callName +++ " undefined":e.envErrors] }
-								{ foldl tupleCheck e2 [(a, b) \\ a <- f.callArgs & b <- argTypes funType] & subs = e.subs }
+								{ foldl tupleCheck e2 [(a, b) \\ a <- f.callArgs & b <- argTypes freshFunType] & subs = e.subs }
 	where
 		funType = (typeFor e f.callName)
-		e1 = foldl (\e i -> let (e2, fresh) = (freshId e) in { e2 & subs = (replaceId i (TId fresh)) o e2.subs }) e (allIds funType)
-		e2 = typeCheck { e1 & envErrors = ["Typing " +++ f.callName +++ " requiring type: " +++ (toString (e1.subs funType)):e.envErrors]} 
-			(returnType (e1.subs funType)) type  // e2 may have new restrictions in typeVars
+		(e1, freshFunType) = foldl 
+						(\et i -> let (e2, fresh) = (freshId (fst et)) in (e2, replaceId i (TId fresh) (snd et)))
+						(e, funType)
+						(allIds funType)
+		e2 = typeCheck { e1 & envErrors = ["Typing " +++ f.callName +++ " requiring type: " +++ (toString freshFunType):e.envErrors]} 
+			(returnType freshFunType) type  // e2 may have new restrictions in typeVars
 
 exampleType = (TFun (RT (TList (TId "t"))) [TId "t", TList (TId "t")])
 exampleEnv = (typeCheck splDefaultEnv (Op2 ETrue PCons EBlock) (TList TInt))

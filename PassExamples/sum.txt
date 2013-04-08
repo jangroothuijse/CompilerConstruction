@@ -6,13 +6,16 @@ Int sum([Int] l) {
 }
 
 Int sum1([Int] l) {
+	[Int] cpy = l;
 	if (isEmpty(tl(l))) {
 		return hd(l);
 	}
 	return hd(l) + sum(tl(l));
 }
 
-Int sum2([Int] l) {
+Int sum2([Int] o) {
+	[Int] l = [];
+
 	if (isEmpty(tl(l))) {
 		return hd(l);
 	} else {

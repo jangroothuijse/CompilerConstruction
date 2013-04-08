@@ -2,6 +2,12 @@
 	return ((fst(p1) + fst(p2)), (fst(snd(p1)) + fst(snd(p2)), snd(snd(p1)) + snd(snd(p2))));
 }
 
-(Int, (Int, Int)) scale((Int, Int) p, Int scalar) {
-	return (fst(p) * scalar, (fst(snd(p)) * scalar, snd(snd(p)) * scalar));
+(Int, (Int, Int)) scale((Int, (Int, Int)) p, Int scalar) {
+	return (
+			fst(p) * scalar, 
+			(	
+				fst(snd(p)) * scalar, 
+				snd(snd(p)) * scalar	
+			)
+	);
 }

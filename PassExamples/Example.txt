@@ -4,13 +4,13 @@ Int product ([Int] list)
 	if (isEmpty(list))
 		return 1;
 	else
-		return hd(list) * product(tail(list));
+		return hd(list) * product(tl(list));
 }
 
 [Int] fromTo (Int from, Int to)
 {
 	if (from <= to)
-		return from : fromTo (from + 1, to);
+		return from : [];
 	else
 		return [];
 }
@@ -56,9 +56,9 @@ Void main()
 	while (n < 20)
 	{
 		facN = facR(n);
-		if (facN != facl(n) || facN != facL(n))
+		if (facN != facL(n) || facN != facL(n))
 		{
-			print (n : FacN : facl(n) : facL(n) : []);
+			print (n : FacN : facL(n) : facL(n) : []);
 			ok = False;
 		}
 		n = n + 1;

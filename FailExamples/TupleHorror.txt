@@ -1,7 +1,13 @@
 (a, b) swapWrong((b, a) t) {
-	
-	return (snd(t), snd(t));
+	//blaat();
+    return (fst(t), fst(t));
+
+    //return must be of type (a, b) so
+    //(
+        // fst must be of type a
+        // t must be of type (a, *) <- should not be possible
+    //,
+        // fst must be of type b
+        // t must be of type (b, *)
+    //)
 }
-
-(Int, Int) i = swapWrong((True, 5));
-
