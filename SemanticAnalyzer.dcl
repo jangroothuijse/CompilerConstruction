@@ -5,7 +5,7 @@ import Tokenizer
 import Parser
 import Result
 
-:: Env = { ids :: [(Id, Type)], subs :: (Type -> Type), envErrors :: [String], functionId :: Maybe Id, freshId :: Int }
+:: Env = { ids :: [(Id, Type)], subs :: (Type -> Type), envErrors :: [String], functionId :: Maybe Id, freshId :: Int, envLine :: Int, envColumn :: Int }
 
 staticAnalyze :: (Result Prog) -> Result (Prog, Env)
 

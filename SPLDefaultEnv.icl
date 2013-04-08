@@ -41,4 +41,4 @@ splDefaultEnv = { ids = [
 			
 			("print", (TFun TVoid [t]) )		
 			],
-	envErrors = [], functionId = Nothing, freshId = 0, subs = id }
+	envErrors = [], functionId = Nothing, freshId = 0, subs = id, envLine = 0, envColumn = 0 }
