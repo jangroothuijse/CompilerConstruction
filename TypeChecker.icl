@@ -98,6 +98,9 @@ instance typeCheck Type where
 	typeCheck e a b = { e & envErrors = ["\n!! TYPE ERROR !! " +++ (toString a) +++ " does not match " +++ (toString b):e.envErrors] }
 
 instance typeCheck Exp where
+	typeCheck e {ex = ex} t = typeCheck e ex t
+
+instance typeCheck Exp2 where
 	typeCheck e (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) { e & envErrors = [i +++ "undefined": e.envErrors] } (typeCheck e vt type))
 	typeCheck e (Op2 e1 op e2) type = typeCheck e (EFC { callName = (toString op), callArgs = [e1, e2] }) type
 	typeCheck e (Op1 op1 e1) type = typeCheck e (EFC { callName = toId op1, callArgs = [e1] }) type
@@ -125,10 +128,10 @@ instance typeCheck Exp where
 			(returnType freshFunType) type  // e2 may have new restrictions in typeVars
 
 exampleType = (TFun (RT (TList (TId "t"))) [TId "t", TList (TId "t")])
-exampleEnv = (typeCheck splDefaultEnv (Op2 ETrue PCons EBlock) (TList TInt))
+exampleEnv = (typeCheck splDefaultEnv ({ex = Op2 {ex = ETrue, eline = 0, ecolumn = 0} PCons {ex = EBlock, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}) (TList TInt))
 
 exampleType2 = TTup (TId "a", TId "b")
-exampleExp = Tup ETrue (EInt 5)
+exampleExp = {ex = Tup {ex = ETrue, eline = 0, ecolumn = 0} {ex = EInt 5, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}
 
 Start = typeCheck splDefaultEnv exampleExp exampleType2
 //(exampleEnv.envErrors, "\n", (replaceId "t" TBool o id) exampleType, "\n", exampleEnv.subs exampleType)

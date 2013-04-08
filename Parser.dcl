@@ -15,7 +15,8 @@ import GenEq
 :: FArg = { argType :: Type, argName :: Id }
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
 			| SFC FunCall | Return | Returne Exp
-:: Exp = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt Int | EFalse | ETrue | EBrace Exp | EFC FunCall
+:: Exp  = { ex :: Exp2, eline :: Int, ecolumn :: Int}
+:: Exp2 = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt Int | EFalse | ETrue | EBrace Exp | EFC FunCall
 			| EBlock | Tup Exp Exp
 :: FunCall = { callName :: String, callArgs :: [Exp] }
 :: Op2 = PPlus | PMin | PMul | PDiv | PMod | PEq | PLT | PGT | PLTE | PGTE | PNEq | PAnd | POr | PCons

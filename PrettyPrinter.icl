@@ -105,8 +105,12 @@ instance toString RetType
 where
 	toString (RT type) = toString type
 	toString TVoid = "Void"
-	
+
 instance toString Exp
+where
+	toString {ex = ex} = toString ex
+	
+instance toString Exp2
 where
 	toString (I iden) = toString iden
 	toString (Op2 e1 op e2) = (toString e1) +++ " " +++ (toString op) +++ " " +++ (toString e2)

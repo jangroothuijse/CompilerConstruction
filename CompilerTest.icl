@@ -154,12 +154,12 @@ newLocVarName e
 
 newIntExp e
 #(i, e)	= randomInt e
-= (EInt i, e)
+= ({ex = EInt i, eline = 0, ecolumn = 0}, e)
 
 newBoolExp e
 #(rand, e)	= randomD e
-|rand > 0.5 = (ETrue, e)
-= (EFalse, e)
+|rand > 0.5 = ({ex = ETrue, eline = 0, ecolumn = 0}, e)
+= ({ex = EFalse, eline = 0, ecolumn = 0}, e)
 
 newStmtsR e
 #(rand, e)	= randomD e
