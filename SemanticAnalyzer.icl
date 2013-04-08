@@ -5,6 +5,7 @@ import Tokenizer
 import Parser
 import TypeChecker
 import PrettyPrinter
+import SPLDefaultEnv
 
 fa = foldl (analyze)
 
@@ -21,6 +22,19 @@ typeFor e i = f e.ids i
 where 
 	f [] i = TEmpty	
 	f [(x, xType):xs] i = if (x == i) xType (f xs i)
+
+
+staticAnalyze :: (Result Prog) -> Result (Prog, Env)
+staticAnalyze (Res p)
+#env=:{envErrors = er}	= analyze splDefaultEnv p
+#rc						= returnCheck p
+|isEmpty er =case rc of
+				Res _ = Res (p, env)
+				Err e = Err e
+=case rc of
+	Res _ = Err er
+	Err e = Err (er ++ e)
+staticAnalyze (Err p) = Err p
 
 class analyze a :: Env a -> Env
 
