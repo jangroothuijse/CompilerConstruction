@@ -7,7 +7,6 @@ import Parser
 import PrettyPrinter
 import Result
 import SemanticAnalyzer
-import SPLDefaultEnv
 import CompilerTest
 
 toLines :: *File -> Result [String]
@@ -26,7 +25,7 @@ Start world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # tok = (tokenizer (toLines file))
 # ast = parse tok
-=case ast of Err e = (tok, prettyPrint tok, ast, "", "")
-			 Res r = (tok, prettyPrint tok, ast, pretty 0 r, foldl (+++) "" (map ((+++) "\n") (analyze splDefaultEnv r).envErrors))
+=case ast of Err e = (tok, prettyPrint tok, ast, "", Err [""])
+			 Res r = (tok, prettyPrint tok, ast, pretty 0 r, staticAnalyze ast)
 
 

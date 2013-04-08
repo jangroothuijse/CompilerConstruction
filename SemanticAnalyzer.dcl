@@ -7,6 +7,8 @@ import Result
 
 :: Env = { ids :: [(Id, Type)], subs :: (Type -> Type), envErrors :: [String], functionId :: Maybe Id, freshId :: Int }
 
+staticAnalyze :: (Result Prog) -> Result (Prog, Env)
+
 class analyze a :: Env a -> Env
 instance analyze Prog
 typeFor :: Env Id -> Type

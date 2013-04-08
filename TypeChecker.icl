@@ -133,6 +133,51 @@ exampleEnv = (typeCheck splDefaultEnv ({ex = Op2 {ex = ETrue, eline = 0, ecolumn
 exampleType2 = TTup (TId "a", TId "b")
 exampleExp = {ex = Tup {ex = ETrue, eline = 0, ecolumn = 0} {ex = EInt 5, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}
 
+class returnCheck a :: a -> Result Bool
+
+instance returnCheck Prog where
+	returnCheck [x:xs] = case returnCheck x of
+								Res _ = returnCheck xs
+								Err e    = case returnCheck xs of
+												Res _ = Err e
+												Err es = Err (e ++ es)
+	returnCheck [] = Res True
+
+instance returnCheck Decl where
+	returnCheck (F {funName = n, retType = RT _, stmts = stmts})
+	=case returnChecks stmts of
+		Res False = Err ["Function " +++ n +++ " doesn't return."]
+		other     = other
+	returnCheck (F {stmts = stmts})
+	=returnChecks stmts
+	returnCheck _ = Res True
+
+instance returnCheck Stmt where
+	returnCheck (Block stmts) = returnChecks stmts
+	returnCheck (If _ stmt) = returnCheck stmt
+	returnCheck (Ife _ stmt stmt2)
+	=case returnCheck stmt of
+		Res True = returnCheck stmt2
+		Res False = case returnCheck stmt2 of
+						Res _ = Res False
+						Err es = Err es
+		Err e    = case returnCheck stmt2 of
+						Res _ = Err e
+						Err es = Err (e ++ es)
+	returnCheck (While _ stmts) = returnCheck stmts
+	returnCheck (Ass _ _) = Res False
+	returnCheck (SFC _) = Res False
+	returnCheck (Return) = Res True
+	returnCheck (Returne _) = Res True
+
+returnChecks :: [Stmt] -> Result Bool
+returnChecks [x:[]] = returnCheck x
+returnChecks [x:xs] = case returnCheck x of
+							Res True = Err ["Unreachable code"]
+							Res False = returnChecks xs
+							other = other
+returnChecks [] = Res False
+
 Start = typeCheck splDefaultEnv exampleExp exampleType2
 //(exampleEnv.envErrors, "\n", (replaceId "t" TBool o id) exampleType, "\n", exampleEnv.subs exampleType)
 
