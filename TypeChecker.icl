@@ -137,9 +137,9 @@ class returnCheck a :: a -> Result Bool
 
 instance returnCheck Prog where
 	returnCheck [x:xs] = case returnCheck x of
-								Res True = returnCheck xs
+								Res _ = returnCheck xs
 								Err e    = case returnCheck x of
-												Res True = Err e
+												Res _ = Err e
 												Err es = Err (e ++ es)
 	returnCheck [] = Res True
 
@@ -148,6 +148,8 @@ instance returnCheck Decl where
 	=case returnChecks stmts of
 		Res False = Err ["Function " +++ n +++ " doesn't return."]
 		other     = other
+	returnCheck (F {stmts = stmts})
+	=returnChecks stmts
 	returnCheck _ = Res True
 
 instance returnCheck Stmt where
@@ -170,7 +172,7 @@ instance returnCheck Stmt where
 
 returnChecks :: [Stmt] -> Result Bool
 returnChecks [x:[]] = returnCheck x
-returnChecks [x:xs] = case returnCheck x of
+returnChecks [x:_] = case returnCheck x of
 							Res True = Err ["Unreachable code"]
 							other = other
 returnChecks [] = Res False

@@ -328,7 +328,7 @@ parseFactor [{token = Op Min, line = l, column = c}:rs]
 					= (Nothing, e, rs) ~>. cantParse rs "Factor"
 parseFactor [{token = Integer z, line = l, column = c}:rs] = (Just {ex = EInt z, eline = l, ecolumn = c}, [], rs)
 parseFactor [{token = KTrue, line = l, column = c}:rs] = (Just {ex = ETrue, eline = l, ecolumn = c}, [], rs)
-parseFactor [{token = KFalse, line = l, column = c}:rs] = (Just {ex = ETrue, eline = l, ecolumn = c}, [], rs)
+parseFactor [{token = KFalse, line = l, column = c}:rs] = (Just {ex = EFalse, eline = l, ecolumn = c}, [], rs)
 parseFactor [{token = POpen}:rs] // Parentheses AND Tuples...
 # 	(t, e, rs)		= parseExp rs
 |	isJust t		= case rs of 
