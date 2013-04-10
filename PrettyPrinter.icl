@@ -56,28 +56,17 @@ implode glue [x:xs] = (toString x) +++ glue +++ implode glue xs
 commaSeperated = implode ", "
 notSeperated = implode ""
 
-class pretty a :: Int a -> String
-
-instance pretty Prog
-where pretty _ decls = foldl (+++) "" [(pretty 0 d) +++ "\n" \\ d <- decls]
-
+instance pretty Prog where pretty _ decls = foldl (+++) "" [(pretty 0 d) +++ "\n" \\ d <- decls]
 instance pretty Decl
 where 
 	pretty n (V varDecl) = pretty n varDecl
 	pretty n (F funDecl) = pretty n funDecl
-	
-instance pretty VarDecl
-where pretty n v = (tabs n) +++ (toString v.type) +++ " " +++ (toString v.name) +++ " = " +++ (toString v.exp) +++ ";\n"
-
-instance pretty FunDecl
+instance pretty VarDecl where pretty n v = (tabs n) +++ (toString v.type) +++ " " +++ (toString v.name) +++ " = " +++ (toString v.exp) +++ ";\n"
+instance pretty FunDecl 
 where pretty n f = (toString f.retType) +++ " " +++ 
-		toString f.funName +++ "(" +++ (commaSeperated f.args) +++ ") {\n"
-		 +++ (notSeperated (map (pretty (n+1)) f.vars))
-		 +++ (notSeperated (map (pretty (n+1)) f.stmts))
-		 +++ "}\n"
-		 		 
-instance pretty Stmt
-where 
+		toString f.funName +++ "(" +++ (commaSeperated f.args) +++ ") {\n"  +++ (notSeperated (map (pretty (n+1)) f.vars))
+	 	+++ (notSeperated (map (pretty (n+1)) f.stmts))  +++ "}\n"
+instance pretty Stmt where 
 	pretty n (Block stmts) = (notSeperated (map (pretty (n)) stmts))
 	pretty n (If e s) = (tabs n) +++ "if (" +++ (toString e) +++ ") {\n" +++ (pretty (n+1) s)  +++ (tabs n) +++ "}\n"
 	pretty n (Ife e s1 s2) = (tabs n) +++ "if (" +++ (toString e) +++ ") {\n" +++ (pretty (n+1) s1) +++ (tabs n) +++ "} else {\n" +++ (pretty (n+1) s2) +++ (tabs n) +++ "}\n"
@@ -86,12 +75,8 @@ where
 	pretty n (SFC fun) = (tabs n) +++ (toString fun) +++ ";\n"
 	pretty n (Return) = (tabs n) +++ "return;\n"
 	pretty n (Returne e) = (tabs n) +++ "return " +++ (toString e) +++ ";\n"
-
-instance toString FArg
-where toString r = (toString r.argType) +++ " " +++ (toString r.argName)
-
-instance toString Type
-where 
+instance toString FArg where toString r = (toString r.argType) +++ " " +++ (toString r.argName)
+instance toString Type where 
 	toString TInt = "Int"
 	toString TBool = "Bool"
 	toString (TTup (type1, type2)) = "(" +++ (toString type1) +++ ", " +++ (toString type2) +++ ")"
@@ -100,18 +85,11 @@ where
 	toString (TFun rt al) = "(" +++ (implode " " al) +++ " -> " +++ (toString rt) +++ ")"
 	toString TEmpty = "(No type)"
 	toString (TFixed i) = "(Fixed: " +++ (toString i) +++ ")"
-
-instance toString RetType
-where
+instance toString RetType where
 	toString (RT type) = toString type
 	toString TVoid = "Void"
-
-instance toString Exp
-where
-	toString {ex = ex} = toString ex
-	
-instance toString Exp2
-where
+instance toString Exp where toString {ex = ex} = toString ex
+instance toString Exp2 where
 	toString (I iden) = toString iden
 	toString (Op2 e1 op e2) = (toString e1) +++ " " +++ (toString op) +++ " " +++ (toString e2)
 	toString (Op1 op e) = (toString op) +++ " " +++ (toString e)
@@ -122,13 +100,8 @@ where
 	toString (EFC fun) = toString fun
 	toString EBlock = "[]"
 	toString (Tup e1 e2) = "(" +++ (toString e1) +++ ", " +++ (toString e2) +++ ")"
-
-instance toString FunCall
-where
-	toString fc = (toString fc.callName) +++ "(" +++ (commaSeperated fc.callArgs) +++ ")"
-	
-instance toString Op2
-where
+instance toString FunCall where toString fc = (toString fc.callName) +++ "(" +++ (commaSeperated fc.callArgs) +++ ")"
+instance toString Op2 where
 	toString PPlus = "+"
 	toString PMin = "-"
 	toString PMul = "*"
@@ -143,9 +116,6 @@ where
 	toString PAnd = "&&"
 	toString POr = "||"
 	toString PCons = ":"
-	
-instance toString Op1
-where
+instance toString Op1 where
 	toString PNot = "!"
 	toString PNeg = "-"
-	
