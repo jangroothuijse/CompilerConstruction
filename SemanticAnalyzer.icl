@@ -55,7 +55,7 @@ instance analyze Stmt where
 
 returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return used outside of function body":e.envErrors]}
 
-instance analyze Exp where analyze e exp = analyze  { e & envLine = exp.eline, envColumn = exp.ecolumn } exp.ex
+instance analyze Exp where analyze e exp = analyze { e & envLine = exp.eline, envColumn = exp.ecolumn } exp.ex
 
 instance analyze Exp2 where 
 	analyze e (I i) = idExists i e id
