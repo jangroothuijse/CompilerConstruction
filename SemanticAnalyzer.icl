@@ -5,7 +5,6 @@ import Tokenizer
 import Parser
 import TypeChecker
 import PrettyPrinter
-import SPLDefaultEnv
 
 errorsOnly e s = { e & envErrors = (analyze e s).envErrors }
 
@@ -14,18 +13,6 @@ idExists i e c = let f = (\l.if (isEmpty l) { e & envErrors = [i +++ " undefined
 
 typeFor :: !Env !Id -> Type
 typeFor e i = let f = (\l.if (isEmpty l) TEmpty (let x = (hd l) in (if (fst x == i) (snd x) (f (tl l))))) in f e.ids
-
-staticAnalyze :: (Result Prog) -> Result (Prog, Env)
-staticAnalyze (Res p)
-# env=:{envErrors = er}	= analyze splDefaultEnv p
-# rc					= returnCheck p
-| isEmpty er =	case rc of
-				Res _ = Res (p, env)
-				Err e = Err e
-= case rc of
-				Res _ = Err er
-				Err e = Err (er ++ e)
-staticAnalyze (Err p) = Err p
 
 fa :== foldl (analyze)
 
@@ -37,8 +24,8 @@ instance analyze Decl where
 
 instance analyze VarDecl where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } v.exp) v.exp v.type
 	
-instance analyze FunDecl  where 
-	analyze e f = { e & ids = ids2, envErrors = (fa (fa { e & ids = fixedArgIds ++ ids2, functionId = Just f.funName } f.vars) f.stmts).envErrors }
+instance analyze FunDecl where 
+	analyze e f = { e & ids = ids2, envErrors = (fa (fa (returnCheck { e & ids = fixedArgIds ++ ids2, functionId = Just f.funName } f) f.vars) f.stmts).envErrors }
 	where 
 		fixedArgIds  = [(a.argName, toFixed a.argType) \\ a <- f.args]
 		ids2 = [(f.funName, TFun (f.retType) [a.argType \\ a <- f.args]):e.ids]

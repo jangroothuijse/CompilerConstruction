@@ -8,6 +8,7 @@ import PrettyPrinter
 import Result
 import SemanticAnalyzer
 import CompilerTest
+import SPLDefaultEnv
 
 toLines :: *File -> Result [String]
 toLines file
@@ -25,7 +26,12 @@ Start world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # tok = (tokenizer (toLines file))
 # ast = parse tok
-=case ast of Err e = (tok, prettyPrint tok, ast, "", Err [""])
-			 Res r = (tok, prettyPrint tok, ast, pretty 0 r, staticAnalyze ast)
+=case ast of Err e = (tok, prettyPrint tok, ast, "", "")
+			 Res r = (tok, prettyPrint tok, ast, pretty 0 r, printEnv (analyze splDefaultEnv r))
+where
+	printEnv :: Env -> String
+	printEnv e = if (isEmpty e.envErrors) "\nSemantic analysis completed, found no errors\n"
+		(foldl (+++) "\nSematic analysis found errors:\n" (reverse (map ((+++) "\n") e.envErrors)))
+				
 
 

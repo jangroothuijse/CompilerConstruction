@@ -9,10 +9,15 @@ import SemanticAnalyzer
 import SPLDefaultEnv
 import GenEq
 
+isVoid :: RetType -> Bool
+isVoid TVoid = True
+isVoid _ = False
+
+nonVoid :: RetType -> Type
+nonVoid (RT t) = t
+
 returnTypeCheck :: Env RetType RetType -> Env
-returnTypeCheck e TVoid TVoid = e
-returnTypeCheck e (RT type1) (RT type2) = typeCheck e type1 type2
-returnTypeCheck e _ _ = typingError e "Unexpecting Void found"
+returnTypeCheck e t1 t2 = if (not (isVoid t2 || isVoid t2)) (typeCheck e (nonVoid t1) (nonVoid t2)) (if (isVoid t1 && isVoid t2) e (typingError e "Unexpected void"))
 
 instance replaceId Type where
 	replaceId i t (TId j) = if (j == i) t (TId j)
@@ -35,9 +40,7 @@ instance allIds Type where
 	allIds (TFun TVoid ta) = flatten (map (allIds) ta)
 	allIds (TFun (RT rt) ta) = allIds rt ++ flatten (map (allIds) ta)
 	allIds t = []
-instance allIds RetType where
-	allIds TVoid = []
-	allIds (RT t) = allIds t
+instance allIds RetType where allIds t = if (isVoid t) [] (allIds (nonVoid t))
 
 toFixed :: !a -> a | replaceId, allIds a
 toFixed t = foldl (\t2 i -> replaceId i (TFixed i) t2) t (allIds t)
@@ -106,52 +109,17 @@ instance typeCheck Exp2 where
 						(allIds funType)
 		e2 = typeCheck e1 (returnType freshFunType) type  // e2 may have new restrictions in typeVars
 
-instance returnCheck Prog where
-	returnCheck [x:xs] = case returnCheck x of
-								Res _ = returnCheck xs
-								Err e    = case returnCheck xs of
-												Res _ = Err e
-												Err es = Err (e ++ es)
-	returnCheck [] = Res True
+returnError e s = { e & envErrors = [s +++ (if (isJust e.functionId) (" in function " +++ (fromJust e.functionId)) ""):e.envErrors] }
 
-instance returnCheck Decl where
-	returnCheck (F {funName = n, retType = RT _, stmts = stmts}) = case returnChecks stmts of
-		Res False = Err ["Function " +++ n +++ " doesn't return."]
-		other     = other
-	returnCheck (F {stmts = stmts}) = returnChecks stmts
-	returnCheck _ = Res True
-
-instance returnCheck Stmt where
-	returnCheck (Block stmts) = returnChecks stmts
-	returnCheck (If _ stmt) = returnCheck stmt
-	returnCheck (Ife _ stmt stmt2) = case returnCheck stmt of
-		Res True = returnCheck stmt2
-		Res False = case returnCheck stmt2 of
-						Res _ = Res False
-						Err es = Err es
-		Err e    = case returnCheck stmt2 of
-						Res _ = Err e
-						Err es = Err (e ++ es)
-	returnCheck (While _ stmts) = returnCheck stmts
-	returnCheck (Ass _ _) = Res False
-	returnCheck (SFC _) = Res False
-	returnCheck (Return) = Res True
-	returnCheck (Returne _) = Res True
-
-returnChecks :: [Stmt] -> Result Bool
-returnChecks [x:[]] = returnCheck x
-returnChecks [x:xs] = case returnCheck x of
-							Res True = Err ["Unreachable code"]
-							Res False = returnChecks xs
-							other = other
-returnChecks [] = Res False
-
-
-exampleType = (TFun (RT (TList (TId "t"))) [TId "t", TList (TId "t")])
-exampleEnv = (typeCheck splDefaultEnv ({ex = Op2 {ex = ETrue, eline = 0, ecolumn = 0} PCons {ex = EBlock, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}) (TList TInt))
-
-exampleType2 = TTup (TId "a", TId "b")
-exampleExp = {ex = Tup {ex = ETrue, eline = 0, ecolumn = 0} {ex = EInt 5, eline = 0, ecolumn = 0}, eline = 0, ecolumn = 0}
-
-Start = typeCheck splDefaultEnv exampleExp exampleType2
-//(exampleEnv.envErrors, "\n", (replaceId "t" TBool o id) exampleType, "\n", exampleEnv.subs exampleType)
+returnCheck :: !Env !FunDecl -> Env
+returnCheck e f = let (g, b) = foldl (rtCheck) (e, False) f.stmts in if (b || (isVoid f.retType)) g (returnError g "Not all branches have a return")
+where
+	rtCheck :: !(!Env, !Bool) Stmt -> (Env, Bool)
+	rtCheck (e, True) _ 		= (returnError e "Unreachable code found (statements after return)", True)
+	rtCheck t (Block stmts) 	= foldl (rtCheck) t stmts
+	rtCheck t (If _ stmt) 		= (fst (rtCheck t stmt), False) // An if cannot definitively return, but can throw unreachale errors
+	rtCheck t (Ife _ s1 s2) 	= let (e, b1) = (rtCheck t s1) in (let (e2, b2) = (rtCheck (e, False) s2) in (e2, b1 && b2))
+	rtCheck t (While _ stmt) 	= (fst (rtCheck t stmt), False) // See if..
+	rtCheck (e, _) Return 		= (e, True)
+	rtCheck (e, _) (Returne _) 	= (e, True)
+	rtCheck t _ 				= t // Assignment, functioncalls

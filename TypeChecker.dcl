@@ -8,8 +8,7 @@ instance typeCheck Type
 instance typeCheck Exp
 instance typeCheck Exp2
 
-class returnCheck a :: !a -> Result Bool
-instance returnCheck Prog
+returnCheck :: !Env !FunDecl -> Env
 
 class replaceId a :: !Id !Type !a -> a
 instance replaceId Type
