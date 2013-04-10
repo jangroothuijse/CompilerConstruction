@@ -7,21 +7,18 @@ import TypeChecker
 import PrettyPrinter
 import SPLDefaultEnv
 
-fa = foldl (analyze)
+fa :== foldl (analyze)
 
 errorsOnly e s = { e & envErrors = (analyze e s).envErrors }
 
-idExists :: Id Env (Env -> Env) -> Env
+idExists :: !Id !Env (!Env -> Env) -> Env
 idExists i e c = f e.ids
 where
 	f [] = { e & envErrors = ["Identifier " +++ i +++ " used but not defined" : e.envErrors] }
 	f [(x, _):xs] = if (x == i) (c e) (f xs)
 
-typeFor :: Env Id -> Type
-typeFor e i = f e.ids i
-where 
-	f [] i = TEmpty	
-	f [(x, xType):xs] i = if (x == i) xType (f xs i)
+typeFor :: !Env !Id -> Type
+typeFor e i = let f = (\l -> if (length l == 0) TEmpty let x = (hd l) in (if (fst x == i) (snd x) f (tl l))) in f e.ids
 
 staticAnalyze :: (Result Prog) -> Result (Prog, Env)
 staticAnalyze (Res p)
@@ -30,24 +27,21 @@ staticAnalyze (Res p)
 | isEmpty er =	case rc of
 				Res _ = Res (p, env)
 				Err e = Err e
-			 =	case rc of
-					Res _ = Err er
-					Err e = Err (er ++ e)
+				 =	case rc of
+						Res _ = Err er
+						Err e = Err (er ++ e)
 staticAnalyze (Err p) = Err p
 
-class analyze a :: Env a -> Env
+instance analyze Prog where analyze e p = fa e p
 
-instance analyze Prog
-where analyze e p = fa e p
-
-instance analyze Decl
+instance analyze Decl 
 where	
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f	
 
 instance analyze VarDecl where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } v.exp) v.exp v.type
 	
-instance analyze FunDecl
+instance analyze FunDecl 
 where 
 	analyze e f = { e & ids = ids2, envErrors = (fa (fa { e & ids = fixedArgIds ++ ids2, functionId = Just f.funName } f.vars) f.stmts).envErrors }
 	where 
@@ -81,5 +75,4 @@ where
 	analyze e (Tup e1 e2) = errorsOnly (errorsOnly e e1) e2
 	analyze e bool = e
 	
-instance analyze FunCall
-where analyze e f = (foldl (errorsOnly) (idExists f.callName e id) f.callArgs)
+instance analyze FunCall where analyze e f = (foldl (errorsOnly) (idExists f.callName e id) f.callArgs)
