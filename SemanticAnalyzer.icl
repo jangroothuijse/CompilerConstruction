@@ -7,18 +7,13 @@ import TypeChecker
 import PrettyPrinter
 import SPLDefaultEnv
 
-fa :== foldl (analyze)
-
 errorsOnly e s = { e & envErrors = (analyze e s).envErrors }
 
 idExists :: !Id !Env (!Env -> Env) -> Env
-idExists i e c = f e.ids
-where
-	f [] = { e & envErrors = ["Identifier " +++ i +++ " used but not defined" : e.envErrors] }
-	f [(x, _):xs] = if (x == i) (c e) (f xs)
+idExists i e c = let f = (\l.if (isEmpty l) { e & envErrors = [i +++ " undefined" : e.envErrors] } (if (fst (hd l) == i) (c e) (f (tl l)))) in f e.ids
 
 typeFor :: !Env !Id -> Type
-typeFor e i = let f = (\l -> if (length l == 0) TEmpty let x = (hd l) in (if (fst x == i) (snd x) f (tl l))) in f e.ids
+typeFor e i = let f = (\l.if (isEmpty l) TEmpty (let x = (hd l) in (if (fst x == i) (snd x) (f (tl l))))) in f e.ids
 
 staticAnalyze :: (Result Prog) -> Result (Prog, Env)
 staticAnalyze (Res p)
@@ -27,10 +22,12 @@ staticAnalyze (Res p)
 | isEmpty er =	case rc of
 				Res _ = Res (p, env)
 				Err e = Err e
-				 =	case rc of
-						Res _ = Err er
-						Err e = Err (er ++ e)
+= case rc of
+				Res _ = Err er
+				Err e = Err (er ++ e)
 staticAnalyze (Err p) = Err p
+
+fa :== foldl (analyze)
 
 instance analyze Prog where analyze e p = fa e p
 
@@ -59,7 +56,7 @@ where
 	analyze e Return = returnHelp e	(typeCheck e (returnType (typeFor e (fromJust e.functionId))) TEmpty) 
 	analyze e (Returne exp) = returnHelp e (typeCheck (analyze e exp) exp (toFixed (returnType (typeFor e ( fromJust e.functionId)))))
 
-returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return outside of function":e.envErrors]}
+returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return used outside of function body":e.envErrors]}
 
 instance analyze Exp where analyze e exp = analyze  { e & envLine = exp.eline, envColumn = exp.ecolumn } exp.ex
 
