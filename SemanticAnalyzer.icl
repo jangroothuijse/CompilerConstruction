@@ -8,7 +8,7 @@ import PrettyPrinter
 
 errorsOnly e s = { e & envErrors = (analyze e s).envErrors }
 
-idExists :: !Id !Env (!Env -> Env) -> Env
+idExists :: !Id !Env (Env -> Env) -> Env
 idExists i e c = let f = (\l.if (isEmpty l) { e & envErrors = [i +++ " undefined" : e.envErrors] } (if (fst (hd l) == i) (c e) (f (tl l)))) in f e.ids
 
 typeFor :: !Env !Id -> Type
@@ -17,19 +17,15 @@ typeFor e i = let f = (\l.if (isEmpty l) TEmpty (let x = (hd l) in (if (fst x ==
 fa :== foldl (analyze)
 
 instance analyze Prog where analyze e p = fa e p
-
 instance analyze Decl where	
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f	
-
-instance analyze VarDecl where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } v.exp) v.exp v.type
-	
+instance analyze VarDecl where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } v.exp) v.exp v.type	
 instance analyze FunDecl where 
 	analyze e f = { e & ids = ids2, envErrors = (fa (fa (returnCheck { e & ids = fixedArgIds ++ ids2, functionId = Just f.funName } f) f.vars) f.stmts).envErrors }
 	where 
 		fixedArgIds  = [(a.argName, toFixed a.argType) \\ a <- f.args]
-		ids2 = [(f.funName, TFun (f.retType) [a.argType \\ a <- f.args]):e.ids]
-	
+		ids2 = [(f.funName, TFun (f.retType) [a.argType \\ a <- f.args]):e.ids]	
 instance analyze Stmt where
 	analyze e (Block l) = fa e l
 	analyze e (If exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
@@ -39,20 +35,30 @@ instance analyze Stmt where
 	analyze e (SFC f) = typeCheck (analyze e f) (EFC f) TEmpty
 	analyze e Return = returnHelp e	(typeCheck e (returnType (typeFor e (fromJust e.functionId))) TEmpty) 
 	analyze e (Returne exp) = returnHelp e (typeCheck (analyze e exp) exp (toFixed (returnType (typeFor e ( fromJust e.functionId)))))
-
-returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return used outside of function body":e.envErrors]}
-
 instance analyze Exp where analyze e exp = analyze { e & envLine = exp.eline, envColumn = exp.ecolumn } exp.ex
-
 instance analyze Exp2 where 
 	analyze e (I i) = idExists i e id
 	analyze e (Op2 e1 op e2) = errorsOnly (errorsOnly e e1) e1
 	analyze e (Op1 op exp) = errorsOnly e exp
-	analyze e (EInt i) = e	
 	analyze e (EBrace exp) = analyze e exp
 	analyze e (EFC f) = analyze e f // <- typeChecked as part of a statement
-	analyze e EBlock = e
 	analyze e (Tup e1 e2) = errorsOnly (errorsOnly e e1) e2
-	analyze e bool = e
-	
+	analyze e _ = e	// Bool, Int, Block <- typeCheck as part of statement (assignment or function call)	
 instance analyze FunCall where analyze e f = (foldl (errorsOnly) (idExists f.callName e id) f.callArgs)
+
+returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return used outside of function body":e.envErrors]}
+
+returnError e s = { e & envErrors = [s +++ (if (isJust e.functionId) (" in function " +++ (fromJust e.functionId)) ""):e.envErrors] }
+
+returnCheck :: !Env !FunDecl -> Env
+returnCheck e f = let (g, b) = foldl (rtCheck) (e, False) f.stmts in if (b || (isVoid f.retType)) g (returnError g "Not all branches have a return")
+where
+	rtCheck :: !(!Env, !Bool) Stmt -> (Env, Bool)
+	rtCheck (e, True) _ 		= (returnError e "Unreachable code found (statements after return)", True)
+	rtCheck t (Block stmts) 	= foldl (rtCheck) t stmts
+	rtCheck t (If _ stmt) 		= (fst (rtCheck t stmt), False) // An if cannot definitively return, but can throw unreachale errors
+	rtCheck t (Ife _ s1 s2) 	= let (e, b1) = (rtCheck t s1) in (let (e2, b2) = (rtCheck (e, False) s2) in (e2, b1 && b2))
+	rtCheck t (While _ stmt) 	= (fst (rtCheck t stmt), False) // See if..
+	rtCheck (e, _) Return 		= (e, True)
+	rtCheck (e, _) (Returne _) 	= (e, True)
+	rtCheck t _ 				= t // Assignment, functioncalls

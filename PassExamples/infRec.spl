@@ -1,0 +1,3 @@
+a infRec(b x, c y) {
+	return infRec(x, y);
+}

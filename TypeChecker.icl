@@ -9,11 +9,11 @@ import SemanticAnalyzer
 import SPLDefaultEnv
 import GenEq
 
-isVoid :: RetType -> Bool
+isVoid :: !RetType -> Bool
 isVoid TVoid = True
 isVoid _ = False
 
-nonVoid :: RetType -> Type
+nonVoid :: !RetType -> Type
 nonVoid (RT t) = t
 
 returnTypeCheck :: Env RetType RetType -> Env
@@ -45,13 +45,13 @@ instance allIds RetType where allIds t = if (isVoid t) [] (allIds (nonVoid t))
 toFixed :: !a -> a | replaceId, allIds a
 toFixed t = foldl (\t2 i -> replaceId i (TFixed i) t2) t (allIds t)
 
-returnType :: Type -> Type
+returnType :: !Type -> Type
 returnType (TFun rt _) = case rt of 
 	TVoid		= TEmpty
 	(RT type)	= type
 returnType t = t
 
-argTypes :: Type -> [Type]
+argTypes :: !Type -> [Type]
 argTypes (TFun _ args) = args
 argTypes t = []
 
@@ -62,8 +62,7 @@ isTEmpty _ = False
 
 typingError e s = { e & envErrors = ["TYPING ERROR on line " +++ (toString e.envLine) +++ " column " +++ (toString e.envColumn) +++ ": " +++ s : e.envErrors] }
 
-// second type will be the required type
-// So typeCheck a b, checks if a meets the requirements of b
+// second type will be the required type, so typeCheck a b, checks if a meets the requirements of b
 instance typeCheck Type where
 	typeCheck e TInt TInt = e
 	typeCheck e TEmpty TEmpty = e	// Case of void....please dont ask
@@ -80,9 +79,7 @@ instance typeCheck Type where
 //									[(x , y) \\ x <- tl1 & y <- tl2]
 //									where e2 = returnTypeCheck e rt1 rt2
 	typeCheck e a b = (typingError e ((toString a) +++ " does not match " +++ (toString b)))
-
 instance typeCheck Exp where typeCheck e exp t = typeCheck { e & envLine = exp.eline, envColumn = exp.ecolumn } exp.ex t
-
 instance typeCheck Exp2 where
 	typeCheck e (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) (typingError e (i +++ "undefined")) (typeCheck e vt type))
 	typeCheck e (Op2 e1 op e2) type = typeCheck e (EFC { callName = (toString op), callArgs = [e1, e2] }) type
@@ -108,18 +105,3 @@ instance typeCheck Exp2 where
 						(e, funType)
 						(allIds funType)
 		e2 = typeCheck e1 (returnType freshFunType) type  // e2 may have new restrictions in typeVars
-
-returnError e s = { e & envErrors = [s +++ (if (isJust e.functionId) (" in function " +++ (fromJust e.functionId)) ""):e.envErrors] }
-
-returnCheck :: !Env !FunDecl -> Env
-returnCheck e f = let (g, b) = foldl (rtCheck) (e, False) f.stmts in if (b || (isVoid f.retType)) g (returnError g "Not all branches have a return")
-where
-	rtCheck :: !(!Env, !Bool) Stmt -> (Env, Bool)
-	rtCheck (e, True) _ 		= (returnError e "Unreachable code found (statements after return)", True)
-	rtCheck t (Block stmts) 	= foldl (rtCheck) t stmts
-	rtCheck t (If _ stmt) 		= (fst (rtCheck t stmt), False) // An if cannot definitively return, but can throw unreachale errors
-	rtCheck t (Ife _ s1 s2) 	= let (e, b1) = (rtCheck t s1) in (let (e2, b2) = (rtCheck (e, False) s2) in (e2, b1 && b2))
-	rtCheck t (While _ stmt) 	= (fst (rtCheck t stmt), False) // See if..
-	rtCheck (e, _) Return 		= (e, True)
-	rtCheck (e, _) (Returne _) 	= (e, True)
-	rtCheck t _ 				= t // Assignment, functioncalls

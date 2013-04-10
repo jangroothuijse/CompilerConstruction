@@ -8,7 +8,7 @@ instance typeCheck Type
 instance typeCheck Exp
 instance typeCheck Exp2
 
-returnCheck :: !Env !FunDecl -> Env
+isVoid :: !RetType -> Bool
 
 class replaceId a :: !Id !Type !a -> a
 instance replaceId Type
@@ -19,4 +19,4 @@ instance allIds Type
 instance allIds RetType
 
 toFixed :: !a -> a | replaceId, allIds a
-returnType :: Type -> Type
+returnType :: !Type -> Type
