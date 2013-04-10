@@ -31,22 +31,19 @@ fa :== foldl (analyze)
 
 instance analyze Prog where analyze e p = fa e p
 
-instance analyze Decl 
-where	
+instance analyze Decl where	
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f	
 
 instance analyze VarDecl where analyze e v = typeCheck (analyze { e & ids = [(v.name, v.type) : e.ids] } v.exp) v.exp v.type
 	
-instance analyze FunDecl 
-where 
+instance analyze FunDecl  where 
 	analyze e f = { e & ids = ids2, envErrors = (fa (fa { e & ids = fixedArgIds ++ ids2, functionId = Just f.funName } f.vars) f.stmts).envErrors }
 	where 
 		fixedArgIds  = [(a.argName, toFixed a.argType) \\ a <- f.args]
 		ids2 = [(f.funName, TFun (f.retType) [a.argType \\ a <- f.args]):e.ids]
 	
-instance analyze Stmt
-where
+instance analyze Stmt where
 	analyze e (Block l) = fa e l
 	analyze e (If exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
 	analyze e (Ife exp st1 st2) = typeCheck (errorsOnly (errorsOnly (errorsOnly e st2) st1) exp) exp TBool
@@ -60,8 +57,7 @@ returnHelp e f = if (isJust e.functionId) f {e & envErrors = ["Return used outsi
 
 instance analyze Exp where analyze e exp = analyze  { e & envLine = exp.eline, envColumn = exp.ecolumn } exp.ex
 
-instance analyze Exp2
-where 
+instance analyze Exp2 where 
 	analyze e (I i) = idExists i e id
 	analyze e (Op2 e1 op e2) = errorsOnly (errorsOnly e e1) e1
 	analyze e (Op1 op exp) = errorsOnly e exp

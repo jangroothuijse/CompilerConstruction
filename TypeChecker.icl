@@ -12,12 +12,10 @@ import GenEq
 returnTypeCheck :: Env RetType RetType -> Env
 returnTypeCheck e TVoid TVoid = e
 returnTypeCheck e (RT type1) (RT type2) = typeCheck e type1 type2
-returnTypeCheck e _ _ = { e & envErrors = ["Unexpecting Void found" :e.envErrors] }
+returnTypeCheck e _ _ = { e & envErrors = [typingError e +++ "Unexpecting Void found" :e.envErrors] }
 
-class replaceId a :: Id Type a -> a
-
-instance replaceId Type
-where
+class replaceId a :: !Id !Type a -> a
+instance replaceId Type where
 	replaceId i t (TId j) = if (j == i) t (TId j)
 	replaceId i t (TTup (a, b)) = TTup (replaceId i t a, replaceId i t b)
 	replaceId i t (TList l) = TList (replaceId i t l)
@@ -25,15 +23,14 @@ where
 	replaceId i t (TFun (RT rt) ta) = TFun (RT (replaceId i t rt)) (map (replaceId i t) ta)
 	replaceId i t1 t2 = t2 // TInt etc are unaffected
 
-instance replaceId RetType
-where
+instance replaceId RetType where
 	replaceId i t TVoid = TVoid
 	replaceId i t (RT t2) = RT (replaceId i t t2)
 
-freshId :: Env -> (Env, Id)
+freshId :: !Env -> (Env, Id)
 freshId e = ({ e & freshId = e.freshId + 1 }, "#" +++ (toString e.freshId))
 
-class allIds a :: a -> [Id]
+class allIds a :: !a -> [Id]
 
 instance allIds Type where
 	allIds (TId i) = [i]
