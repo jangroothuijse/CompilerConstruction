@@ -105,3 +105,4 @@ instance typeCheck Exp2 where
 						(e, funType)
 						(allIds funType)
 		e2 = typeCheck e1 (returnType freshFunType) type  // e2 may have new restrictions in typeVars
+	typeCheck e p t = typingError e ((toString p) +++ " does not match " +++ (toString t))

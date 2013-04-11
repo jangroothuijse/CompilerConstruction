@@ -1,0 +1,24 @@
+[a] fun (Int i) {
+	if (i == 0) {
+		if (True) {
+			return [];
+		} else return [];
+	}
+}
+
+Int fun2 () {
+	while (True) {
+		return 1;
+	}
+}
+
+a someMuchWrong(b x) {
+	Bool var = 1;
+	[Int] i = fun(1);
+	if (False || var) {
+		return x;
+	}
+	
+
+	return (i, 1);
+}

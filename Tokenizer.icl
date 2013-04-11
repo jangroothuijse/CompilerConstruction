@@ -27,9 +27,7 @@ where
 		hasString = length [1 \\ x <-: s | x == char.c] > 0
 		char = hd input
 
-
-// Accept int, only stops when digits end.
-tokenizeInteger :: [CharMeta] -> Maybe ([CharMeta], [Token])
+tokenizeInteger :: [CharMeta] -> Maybe ([CharMeta], [Token]) // Accept int, only stops when digits end.
 tokenizeInteger yys=:[y:ys] = if (isDigit y.c) (f yys 0) Nothing
 where
 	f :: [CharMeta] Int -> Maybe ([CharMeta], [Token])
@@ -64,8 +62,6 @@ where
 	cBlock [x:xs] = if (x.c == '*') (cBlock2 xs) (cBlock xs)
 	cBlock2 [] = []
 	cBlock2 [x:xs] = if (x.c == '/') xs (cBlock xs)	
-
-
 		
 tokenize :: [Tokenizer] [CharMeta] -> Maybe ([CharMeta], [Token])
 tokenize tokens [] = Just ([], [])
@@ -75,43 +71,30 @@ where
 	f (Just (moreInput, t)) = ([], t ++ moreTokens)
 	where 
 		(_, moreTokens) = fromJust (tokenize tokens moreInput)	
-		
-
 
 tokens :: [Tokenizer]
 tokens = [
-		// delete Comments
-		tokenizeComments,
-		
-		// ingore layout
-		ignore " \n\r\t", // this ignores 4 characters, space, newline, return carriage and tab
-	
+		tokenizeComments, // delete Comments				
+		ignore " \n\r\t", // this ignores 4 characters, space, newline, return carriage and tab	
 		// Keywords		
 		symbol "if" KIf, symbol "else" KElse, symbol "while" KWhile, symbol "return" KReturn,
 		symbol "True" KTrue, symbol "False" KFalse,
 		// Type Keywords
-		symbol "Void" KVoid, symbol "Int" KInt, symbol "Bool" KBool, 
-			
+		symbol "Void" KVoid, symbol "Int" KInt, symbol "Bool" KBool, 			
 		// patentheses, curly brackets, square brackets
 		symbol "(" POpen, symbol ")" PClose, symbol "{" CBOpen, symbol "}" CBClose, symbol "[" SBOpen, symbol "]" SBClose, 
 		// interpunction
 		symbol "," Comma, symbol ";" Semicolon,
-	
-		// OPS
 		// 	Comparison
 		symbol "==" (Op Eq), symbol "<=" (Op LTE),  symbol ">=" (Op GTE), symbol ">=" (Op GTE), symbol "!=" (Op NEq),
 		symbol "<" (Op LT), symbol ">" (Op GT),
 		// 	Logical
 		symbol "&&" (Op And), symbol "||" (Op Or), symbol "!" (Op Not),	
 		// 	Arithmic
-		symbol "+" (Op Plus), symbol "-" (Op Min), symbol "*" (Op Mul), symbol "/" (Op Div), symbol "%" (Op Mod), 
-		symbol ":" (Op Cons),
+		symbol "+" (Op Plus), symbol "-" (Op Min), symbol "*" (Op Mul), symbol "/" (Op Div), symbol "%" (Op Mod), symbol ":" (Op Cons),
 	
 		// rest
-		symbol "=" KAssign,
-		tokenizeInteger,
-		tokenizeId,
-		tokenizeFail
+		symbol "=" KAssign, tokenizeInteger, tokenizeId, tokenizeFail
 	]
 	
 tokenizer :: (Result [String]) -> Result [Token]
