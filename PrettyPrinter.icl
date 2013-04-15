@@ -81,7 +81,7 @@ instance toString Type where
 	toString TBool = "Bool"
 	toString (TTup (type1, type2)) = "(" +++ (toString type1) +++ ", " +++ (toString type2) +++ ")"
 	toString (TList type) = "[" +++ (toString type) +++ "]"
-	toString (TId iden) = "(Var: " +++ toString iden +++ ")"
+	toString (TId iden) = toString iden
 	toString (TFun rt al) = "(" +++ (implode " " al) +++ " -> " +++ (toString rt) +++ ")"
 	toString TEmpty = "(No type)"
 	toString (TFixed i) = "(Fixed: " +++ (toString i) +++ ")"
