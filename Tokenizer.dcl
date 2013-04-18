@@ -12,6 +12,8 @@ import GenEq
 		 | KTrue | KFalse | KAssign
 :: Operator = Plus | Min | Mul | Div | Mod | Eq | LT | GT | LTE | GTE | NEq | And | Or | Cons | Not
 
+:: CharMeta = { c :: Char, l :: Int, col :: Int }
+
 derive gEq Symbol, Operator
 
-tokenizer :: (Result [String]) -> Result [Token]
+tokenize :: ([String] -> [Token])

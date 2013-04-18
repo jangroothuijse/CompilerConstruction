@@ -8,105 +8,95 @@ import GenEq
 :: Tokenizer :== [CharMeta] -> Maybe ([CharMeta], [Token])
 :: CharMeta = { c :: Char, l :: Int, col :: Int }
 
-symbol :: String Symbol -> Tokenizer
-symbol s token = f 
-where 
-	sizeS = size s
-	f input=:[y:ys]
-	|	hasString	= Just ((drop sizeS input), [{ token = token, line = y.l, column = y.col }])
-					= Nothing
-	where 
-		hasString = length [1 \\ x <-: s & y <- input | x == y.c] == sizeS	
-		
-ignore s = f
-where
-	f input
-	|	hasString = Just (drop 1 input, [])
-				  = Nothing
-	where 
-		hasString = length [1 \\ x <-: s | x == char.c] > 0
-		char = hd input
+tokenizer :: [CharMeta] -> [Token]
 
-tokenizeInteger :: [CharMeta] -> Maybe ([CharMeta], [Token]) // Accept int, only stops when digits end.
-tokenizeInteger yys=:[y:ys] = if (isDigit y.c) (f yys 0) Nothing
-where
-	f :: [CharMeta] Int -> Maybe ([CharMeta], [Token])
-	f [] i = Just ([], [{ token = Integer i, line = y.l, column = y.col }])
-	f xxs=:[x:xs] i
-	|	isDigit x.c = f xs ((10 * i + (digitToInt x.c)))
-	=	Just (xxs, [{ token = Integer i, line = y.l, column = y.col }])
-	
-tokenizeId :: [CharMeta] -> Maybe ([CharMeta], [Token])
-tokenizeId [y:ys] = if (isAlpha y.c || y.c == '_') (f {y.c} ys) Nothing
-where
-	f :: String [CharMeta] -> Maybe ([CharMeta], [Token])
-	f name [] = Just ([], [{ token = Identifier name, line = y.l, column = y.col }])
-	f name xxs=:[x:xs]
-	|	(isAlphanum x.c || x.c == '_') = f (name +++ {x.c}) xs
-	=	Just (xxs, [{ token = Identifier name, line = y.l,column = y.col }])
-	
-tokenizeFail :: [CharMeta] -> Maybe ([CharMeta], [Token])
-tokenizeFail input=:[x:xs] = abort ("\nFailed to tokenize: \"" +++ { x.c \\ x <- (take 5 input) } +++ "\" on line " +++ (toString x.l) +++ "\n")
+tokenizer [] = []
 
-tokenizeComments :: [CharMeta] -> Maybe ([CharMeta], [Token])
-tokenizeComments [x:xs] = if (x.c == '/') (tc xs) Nothing
-where
-	tc [] = Nothing
-	tc [y:ys]
-	|	y.c == '/' = Just (cLine ys, [])
-	|	y.c == '*' = Just (cBlock ys, [])
-		= Nothing
-	cLine [] = []
-	cLine [x:xs] = if (x.c == ("\n".[0]) || x.c == ("\r".[0])) xs (cLine xs)
-	cBlock [] = []
-	cBlock [x:xs] = if (x.c == '*') (cBlock2 xs) (cBlock xs)
-	cBlock2 [] = []
-	cBlock2 [x:xs] = if (x.c == '/') xs (cBlock xs)	
-		
-tokenize :: [Tokenizer] [CharMeta] -> Maybe ([CharMeta], [Token])
-tokenize tokens [] = Just ([], [])
-tokenize tokens input = Just (f (hd [x \\ t <- tokens, x <- [t input] | isJust x]))
-where
-	f :: (Maybe ([CharMeta], [Token])) -> ([CharMeta], [Token])
-	f (Just (moreInput, t)) = ([], t ++ moreTokens)
-	where 
-		(_, moreTokens) = fromJust (tokenize tokens moreInput)	
+tokenizer [{c = '/'}:[{c = '*'}:xs]] = tokenizerCommentBlock xs
+tokenizer [{c = '/'}:[{c = '/'}:xs]] = tokenizerCommentLine xs
 
-tokens :: [Tokenizer]
-tokens = [
-		tokenizeComments, // delete Comments				
-		ignore " \n\r\t", // this ignores 4 characters, space, newline, return carriage and tab	
-		// Keywords		
-		symbol "if" KIf, symbol "else" KElse, symbol "while" KWhile, symbol "return" KReturn,
-		symbol "True" KTrue, symbol "False" KFalse,
-		// Type Keywords
-		symbol "Void" KVoid, symbol "Int" KInt, symbol "Bool" KBool, 			
-		// patentheses, curly brackets, square brackets
-		symbol "(" POpen, symbol ")" PClose, symbol "{" CBOpen, symbol "}" CBClose, symbol "[" SBOpen, symbol "]" SBClose, 
-		// interpunction
-		symbol "," Comma, symbol ";" Semicolon,
-		// 	Comparison
-		symbol "==" (Op Eq), symbol "<=" (Op LTE),  symbol ">=" (Op GTE), symbol ">=" (Op GTE), symbol "!=" (Op NEq),
-		symbol "<" (Op LT), symbol ">" (Op GT),
-		// 	Logical
-		symbol "&&" (Op And), symbol "||" (Op Or), symbol "!" (Op Not),	
-		// 	Arithmic
-		symbol "+" (Op Plus), symbol "-" (Op Min), symbol "*" (Op Mul), symbol "/" (Op Div), symbol "%" (Op Mod), symbol ":" (Op Cons),
-	
-		// rest
-		symbol "=" KAssign, tokenizeInteger, tokenizeId, tokenizeFail
-	]
-	
-tokenizer :: (Result [String]) -> Result [Token]
-tokenizer (Res r) = Res ((snd o fromJust o (tokenize tokens) o (toCharsInLine)) r)
+tokenizer [{c = ' ', l = l, col = col}:xs] = tokenizer xs
+tokenizer [{c = '\t', l = l, col = col}:xs] = tokenizer xs
+tokenizer [{c = '\n', l = l, col = col}:xs] = tokenizer xs
+tokenizer [{c = '\r', l = l, col = col}:xs] = tokenizer xs
+
+tokenizer [cm=:{c = '('}:xs] = [t cm POpen : tokenizer xs]
+tokenizer [cm=:{c = ')'}:xs] = [t cm PClose: tokenizer xs]
+tokenizer [cm=:{c = '{'}:xs] = [t cm CBOpen: tokenizer xs]
+tokenizer [cm=:{c = '}'}:xs] = [t cm CBClose: tokenizer xs]
+tokenizer [cm=:{c = '['}:xs] = [t cm SBOpen: tokenizer xs]
+tokenizer [cm=:{c = ']'}:xs] = [t cm SBClose: tokenizer xs]
+
+tokenizer [cm=:{c = ','}:xs] = [t cm Comma: tokenizer xs]
+tokenizer [cm=:{c = ';'}:xs] = [t cm Semicolon: tokenizer xs]
+
+tokenizer [cm=:{c = '&'}:[{c = '&'}:xs]] = [t cm (Op And): tokenizer xs]
+tokenizer [cm=:{c = '|'}:[{c = '|'}:xs]] = [t cm (Op Or): tokenizer xs]
+
+tokenizer [cm=:{c = '='}:[{c = '='}:xs]] = [t cm (Op Eq): tokenizer xs]
+tokenizer [cm=:{c = '<'}:[{c = '='}:xs]] = [t cm (Op LTE): tokenizer xs]
+tokenizer [cm=:{c = '>'}:[{c = '='}:xs]] = [t cm (Op GTE): tokenizer xs]
+tokenizer [cm=:{c = '!'}:[{c = '='}:xs]] = [t cm (Op NEq): tokenizer xs]
+tokenizer [cm=:{c = '<'}:xs] = [t cm (Op LT): tokenizer xs]
+tokenizer [cm=:{c = '>'}:xs] = [t cm (Op GT): tokenizer xs]
+tokenizer [cm=:{c = '='}:xs] = [t cm KAssign: tokenizer xs]
+
+tokenizer [cm=:{c = '+'}:xs] = [t cm (Op Plus): tokenizer xs]
+tokenizer [cm=:{c = '-'}:xs] = [t cm (Op Min): tokenizer xs]
+tokenizer [cm=:{c = '*'}:xs] = [t cm (Op Mul): tokenizer xs]
+tokenizer [cm=:{c = '%'}:xs] = [t cm (Op Mod): tokenizer xs]
+tokenizer [cm=:{c = '/'}:xs] = [t cm (Op Div): tokenizer xs]
+tokenizer [cm=:{c = ':'}:xs] = [t cm (Op Cons): tokenizer xs]
+tokenizer [cm=:{c = '!'}:xs] = [t cm (Op Not): tokenizer xs]
+
+tokenizer [x:xs]
+| isAlpha x.c || x.c == '_'	= tokenizerString [x.c] xs x
+| isDigit x.c				= tokenizerInt (digitToInt x.c) xs x
+= abort ("Cannot tokenize" +++ (toString x.c))
+
+tokenizerString :: [Char] [CharMeta] CharMeta -> [Token]
+tokenizerString acc xxs=:[x:xs] begin
+| isAlphanum x.c || x.c == '_' = tokenizerString (acc ++ [x.c]) xs begin
+# name = { c \\ c <- acc } // toString conversion
+= case name of 
+	"if"		= [t begin KIf:tokenizer xxs]
+	"else"		= [t begin KElse:tokenizer xxs]
+	"while"		= [t begin KWhile:tokenizer xxs]
+	"return"	= [t begin KReturn:tokenizer xxs]
+	"Bool"		= [t begin KBool:tokenizer xxs]
+	"Int"		= [t begin KInt:tokenizer xxs]
+	"True"		= [t begin KTrue:tokenizer xxs]
+	"False"		= [t begin KFalse:tokenizer xxs]
+	"Void"		= [t begin KVoid:tokenizer xxs]
+	s			= [t begin (Identifier s):tokenizer xxs]
+
+tokenizerInt :: !Int [CharMeta] CharMeta -> [Token]
+tokenizerInt i xxs=:[x:xs] begin
+|	isDigit x.c		= tokenizerInt ((10 * i) + (digitToInt x.c)) xs begin
+=	[t begin (Integer i): tokenizer xxs]
+
+tokenizerCommentLine [{c = '\n'}:xs] = tokenizer xs
+tokenizerCommentLine [x:xs] = tokenizerCommentLine xs
+
+tokenizerCommentBlock [{c = '*'}:[{c = '/'}:xs]] = tokenizer xs
+tokenizerCommentBlock [x:xs] = tokenizerCommentBlock xs
+
+t :: CharMeta Symbol -> Token
+t cm s = { Token | token = s, line = cm.CharMeta.l, column = cm.CharMeta.col }
+
+tokenize :: ([String] -> [Token])
+tokenize = tokenizer o (toCharsInLine)
 
 toCharsInLine :: [String] -> [CharMeta]
-toCharsInLine strings = f 1 strings
+toCharsInLine strings = f 1 0 strings
 where
-	f _ [] = []
-	f i [x:xs] = [{ c = y, l = i, col= j} \\ y <-: x & j <- [0..]] ++ f (i+1) xs
+	f :: !Int !Int [String] -> [CharMeta]
+	f _ _ [] = []
+	f i j l=:[x:xs]
+	|	j < size x	= [{ c = x.[j], l = i, col = j+1}: f i (j + 1) l]
+					= f (i + 1) 0 xs
 
 derive gEq Symbol, Operator
 
-Start = tokenizer (Res ["/*1*/{ } *\n",  "/** dont care */ 3\n", "if (foo == True)\n", "\n", "bar = 34;\n", "else bar = 302a;  // this should not show up"])
+Start = tokenize ["/*1*/{ } *\n",  "/** dont care */ 3\n", "if (foo == True)\n", "\n", "bar = 34;\n", "else bar = 302a;  // this should not show up"]
 

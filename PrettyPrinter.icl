@@ -5,49 +5,6 @@ import Tokenizer
 import Parser
 import Result
 
-prettyPrint :: (Result [Token]) -> String
-prettyPrint (Res [{token = x}:xs]) = " " +++ (p x) +++ (prettyPrint (Res xs))
-where
-	p :: Symbol -> String
-	p POpen = "("
-	p PClose = ")"
-	p CBOpen = "{\n"
-	p CBClose = "\n}\n"
-	p SBOpen = "["
-	p SBClose = "]"
-	p Comma = ","
-	p Semicolon = ";\n"
-	p (Identifier s) = s
-	p (Integer x) = toString x
-	p (Op Plus) = "+"
-	p (Op Min) = "-"
-	p (Op Mul) = "*"
-	p (Op Div) = "/"
-	p (Op Mod) = "%"
-	p (Op Eq) = "=="
-	p (Op LT) = "<"
-	p (Op GT) = ">"
-	p (Op LTE) = "<="
-	p (Op GTE) = ">="
-	p (Op NEq) = "!="
-	p (Op And) = "&&"
-	p (Op Or) = "||"
-	p (Op Cons) = ":"
-	p (Op Not) = "!"
-	p (Op _) = abort "unknown operator"
-	p KIf = "if"
-	p KElse = "else" 
-	p KWhile = "while"
-	p KReturn = "return"
-	p KVoid  = "void"
-	p KInt = "int"
-	p KBool = "bool"
-	p KTrue = "true"
-	p KFalse = "false"
-	p KAssign = "="
-	p _ = abort "unknown token"
-prettyPrint _ = ""
-
 tabs n = {'\t' \\ i <- [1..n] }
 implode glue [] = ""
 implode glue [x] = (toString x)
@@ -56,7 +13,9 @@ implode glue [x:xs] = (toString x) +++ glue +++ implode glue xs
 commaSeperated = implode ", "
 notSeperated = implode ""
 
-instance pretty Prog where pretty _ decls = foldl (+++) "" [(pretty 0 d) +++ "\n" \\ d <- decls]
+prettyPrint :: *File Prog -> *File
+prettyPrint output decls = foldl (<<<) output [(pretty 0 d) +++ "\n" \\ d <- decls]
+
 instance pretty Decl
 where 
 	pretty n (V varDecl) = pretty n varDecl
@@ -86,8 +45,8 @@ instance toString Type where
 	toString TEmpty = "(No type)"
 	toString (TFixed i) = "(Fixed: " +++ (toString i) +++ ")"
 instance toString RetType where
-	toString (RT type) = toString type
 	toString TVoid = "Void"
+	toString (RT type) = toString type
 instance toString Exp where toString {ex = ex} = toString ex
 instance toString Exp2 where
 	toString (I iden) = toString iden

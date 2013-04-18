@@ -11,8 +11,8 @@ t = (TId "t")
 a :: Type
 a = (TId "a")
 
-splDefaultEnv :: Env
-splDefaultEnv = { ids = [
+splDefaultEnv :: !*File -> *UEnv
+splDefaultEnv console = { UEnv | console = console, e = { Env | ids = [
 			("+", (TFun (RT TInt) [TInt, TInt]) ),
 			("-", (TFun (RT TInt) [TInt, TInt]) ),
 			("*", (TFun (RT TInt) [TInt, TInt]) ),
@@ -41,4 +41,4 @@ splDefaultEnv = { ids = [
 			
 			("print", (TFun TVoid [t]) )		
 			],
-	envErrors = [], functionId = Nothing, freshId = 0, subs = id, envLine = 0, envColumn = 0 }
+	functionId = Nothing, freshId = 0, subs = id, envLine = 0, envColumn = 0 }, error = False }

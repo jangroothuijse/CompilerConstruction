@@ -5,10 +5,11 @@ import Tokenizer
 import Parser
 import Result
 
-:: Env = { ids :: [(Id, Type)], subs :: (Type -> Type), envErrors :: [String], functionId :: Maybe Id, freshId :: Int, envLine :: Int, envColumn :: Int }
+:: Env = { ids :: [(Id, Type)], subs :: (Type -> Type), functionId :: Maybe Id, freshId :: Int, envLine :: Int, envColumn :: Int }
+:: UEnv = { console :: !.File, e :: Env, error :: Bool }
 
-class analyze a :: !Env !a -> Env
+check :: Prog *UEnv -> (Prog, *UEnv)
+
+class analyze a :: *UEnv a -> *UEnv
 instance analyze Prog
-typeFor :: !Env !Id -> Type
-
-
+typeFor :: Env !Id -> Type

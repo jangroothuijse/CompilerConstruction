@@ -25,11 +25,11 @@ import GenEq
 
 :: Priority = PAll | PBlock | PStatement | PBrace
 
-parse :: (Result [Token]) -> Result (Prog)
+parse :: [Token] -> Prog
 
 
-(~>) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
+//(~>) infixl 7 :: (Maybe a, [String], [Token]) ([Token] -> (Maybe b, [String], [Token])) -> (Maybe a, [String], [Token])
 
-parsePClose :: [Token] -> (Maybe Bool, [String], [Token])
+//parsePClose :: [Token] -> (Maybe Bool, [String], [Token])
 
-derive gEq Decl
+//derive gEq Decl

@@ -7,31 +7,33 @@ import Parser
 import PrettyPrinter
 import Result
 import SemanticAnalyzer
-import CompilerTest
 import SPLDefaultEnv
 
-toLines :: *File -> Result [String]
+toLines :: *File -> [String]
 toLines file
 # (line, file) = freadline file
-| size line == 0    =   Res []
-# (Res r) = toLines file
-= Res [line: r]
+| size line == 0 = []
+= [line: toLines file]
 
-//Start :: *World -> String
 Start world
+# 	(console, world) = stdio world
 #   args = getCommandLine
 |   size args < 2 = abort "\nNo filename supplied (missing argument)\n"
 #   filename = args.[1]
 #   (succes, file, world)   = fopen filename FReadText world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
-# tok = (tokenizer (toLines file))
-# ast = parse tok
-=case ast of Err e = (tok, prettyPrint tok, ast, "", "")
-			 Res r = (tok, prettyPrint tok, ast, pretty 0 r, printEnv (analyze splDefaultEnv r))
-where
-	printEnv :: Env -> String
-	printEnv e = if (isEmpty e.envErrors) "\nSemantic analysis completed, found no errors\n"
-		(foldl (+++) "\nSematic analysis found errors:\n" (reverse (map ((+++) "\n") e.envErrors)))
+# console = console <<< ("Compiling " +++ filename +++ "\n")
+|	size args > 2 && args.[2] == "-print" = prettyPrint console (parse (tokenize (toLines file)))
+# defaultEnv = splDefaultEnv console
+ = (analyze defaultEnv (parse (tokenize (toLines file)))).console
+//= u.console
+//# (checked, u) = (check (parse (tokenize (toLines file))) defaultEnv)
+//# console = u.UEnv.console
+//# error = u.UEnv.error
+//# console = console <<< ((toString (length checked)) +++ " definitions\n")
+//| error = console <<< "Semantic errors where found, program rejected\n"
+//# console = console <<< "Semantic analysis completed, no errors where found"
+//= console
 				
 
 

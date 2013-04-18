@@ -3,7 +3,7 @@ definition module TypeChecker
 import Parser
 import SemanticAnalyzer
 
-class typeCheck a :: !Env !a !Type -> Env
+class typeCheck a :: !*UEnv !a !Type -> *UEnv
 instance typeCheck Type
 instance typeCheck Exp
 instance typeCheck Exp2
