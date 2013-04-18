@@ -24,16 +24,9 @@ Start world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # console = console <<< ("Compiling " +++ filename +++ "\n")
 |	size args > 2 && args.[2] == "-print" = prettyPrint console (parse (tokenize (toLines file)))
-# defaultEnv = splDefaultEnv console
- = (analyze defaultEnv (parse (tokenize (toLines file)))).console
-//= u.console
-//# (checked, u) = (check (parse (tokenize (toLines file))) defaultEnv)
-//# console = u.UEnv.console
-//# error = u.UEnv.error
-//# console = console <<< ((toString (length checked)) +++ " definitions\n")
-//| error = console <<< "Semantic errors where found, program rejected\n"
-//# console = console <<< "Semantic analysis completed, no errors where found"
-//= console
-				
 
+# defaultEnv = splDefaultEnv console
+# { console = console, error = error } = (analyze defaultEnv (parse (tokenize (toLines file))))
+| error = console <<< "Semantic analyzes found errors, program rejected\n"
+= console <<< "Semantic analysis completed, no errors where found\n"
 

@@ -1,0 +1,33 @@
+
+
+[a] fun4 (b a) {
+	return a : [];
+}
+
+a fun3 (a a) {
+	return (a, a);
+}
+
+Int fun (Int i) {
+	return True && i == i;
+}
+
+Int fun2 (Int i) {
+	return True && i;
+}
+
+Int fun5 (Int i) {
+	return i + 1;
+}
+
+Int fun6 (Int i) {
+	return i + 1;
+}
+
+Int fun7 (Int i) {
+	return i + 1;
+}
+
+fun8(Bool t) {
+	return t;
+}
