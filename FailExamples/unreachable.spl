@@ -10,3 +10,7 @@ Void fun2(Int i) {
 	return;
 	i = j + 1;
 }
+
+Int fun3() {
+	Int x = 10;
+}

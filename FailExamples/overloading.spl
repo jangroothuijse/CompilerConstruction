@@ -1,0 +1,13 @@
+a fun3() {
+	Int x = 10;
+	a y = 0;
+	return y;
+}
+
+Void fun4 () {
+	a i = fun3();
+}
+
+Void fun3() {
+	Int x = 10;
+}
