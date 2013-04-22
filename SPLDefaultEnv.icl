@@ -1,9 +1,6 @@
 implementation module SPLDefaultEnv
 
-import StdEnv
-import Parser
-import PrettyPrinter
-import SemanticAnalyzer
+import StdEnv, SemanticAnalyzer
 
 t :: Type
 t = (TId "t")

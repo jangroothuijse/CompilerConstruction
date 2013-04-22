@@ -1,6 +1,6 @@
 implementation module Parser
 
-import Tokenizer, GenEq, StdEnv
+import StdEnv, StdMaybe, GenEq, Tokenizer
 
 :: Unit = Unit
 :: PR a = { tokens :: [Token], result :: a }

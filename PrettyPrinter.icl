@@ -1,6 +1,6 @@
 implementation module PrettyPrinter
 
-import StdEnv, Tokenizer, Parser
+import StdEnv, Parser
 
 tabs n = {'\t' \\ i <- [1..n] }
 implode glue [] = ""

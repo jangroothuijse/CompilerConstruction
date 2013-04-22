@@ -1,8 +1,6 @@
 implementation module Tokenizer
 
-import StdEnv
-import StdMaybe
-import GenEq
+import StdEnv, StdMaybe, GenEq
 
 :: Tokenizer :== [CharMeta] -> Maybe ([CharMeta], [Token])
 :: CharMeta = { c :: Char, l :: Int, col :: Int }

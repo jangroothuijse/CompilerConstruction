@@ -2,12 +2,8 @@ implementation module TypeChecker
 
 // Function in this file do not add to ids to the environment, analyzeType is the only function to do any env modification, and it only makes errors.
 
-import StdEnv
-import Parser	// Only Type and Id are really needed
-import PrettyPrinter // Only to string Op2 is needed...
-import SemanticAnalyzer
 import SPLDefaultEnv
-import GenEq
+import PrettyPrinter // Only toString Op2, Exp2 and Type is needed...
 
 isVoid :: !RetType -> Bool
 isVoid TVoid = True

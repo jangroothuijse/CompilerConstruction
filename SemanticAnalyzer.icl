@@ -1,10 +1,6 @@
 implementation module SemanticAnalyzer
 
-import StdEnv
-import Tokenizer
-import Parser
-import TypeChecker
-import PrettyPrinter
+import StdEnv, Parser, TypeChecker, PrettyPrinter
 
 check :: Prog *UEnv -> (Prog, *UEnv)
 check [] ue = ([], ue)

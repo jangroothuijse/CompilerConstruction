@@ -2,7 +2,6 @@ definition module Parser
 
 //import Tokenizer
 from Tokenizer import :: Token
-import StdMaybe
 import GenEq
 
 :: Prog :== [Decl]

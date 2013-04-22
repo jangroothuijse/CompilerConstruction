@@ -1,6 +1,5 @@
 definition module SPLDefaultEnv
 
-import Parser
-import SemanticAnalyzer
+import Parser, SemanticAnalyzer
 
 splDefaultEnv :: !*File -> *UEnv

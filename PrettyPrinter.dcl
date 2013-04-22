@@ -1,10 +1,6 @@
 definition module PrettyPrinter
 
-import Tokenizer
-import Parser
-import StdEnv
-
-//prettyPrint :: (Result [Token]) -> String // Prettyprinter for token streams
+import Parser, StdEnv
 
 prettyPrint :: *File Prog -> *File
 

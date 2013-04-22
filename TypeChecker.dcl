@@ -1,6 +1,5 @@
 definition module TypeChecker
 
-import Parser
 import SemanticAnalyzer
 
 class typeCheck a :: !*UEnv !a !Type -> *UEnv
