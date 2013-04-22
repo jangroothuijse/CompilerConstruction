@@ -30,7 +30,7 @@ instance analyze Prog where analyze e p = fa e p
 instance analyze Decl where	
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f	
-instance analyze VarDecl where analyze ue=:{ e = e } v = typeCheck (analyze { ue & e = { e & ids = [(v.name, v.type) : e.ids] } } v.exp) v.exp v.type	
+instance analyze VarDecl where analyze ue=:{ e = e } v = typeCheck (analyze { ue & e = { e & ids = [(v.name, v.type) : e.ids] } } v.exp) v.exp (toFixed v.type)	
 instance analyze FunDecl where
 	analyze ue=:{ e = e } f = { ue2 & e = { e & ids = ids2 } }
 	where 
