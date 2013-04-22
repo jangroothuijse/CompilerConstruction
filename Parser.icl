@@ -28,7 +28,7 @@ parseSymbol t [x:xs] = abort (parseError [x:xs] ("Expecting: " +++ (toString t) 
 parseSymbol _ _ = abort (parseError [] "")
 
 parseFunDecl :: RetType Id [Token] -> PR Decl
-parseFunDecl type name tokens = { PR | result = F { retType = type, funName = name, args = fargs.PR.result, vars = vars.PR.result, stmts = stmts.PR.result }, tokens = stmts.PR.tokens } where
+parseFunDecl type name tokens = { PR | result = F { retType = type, funName = name, args = fargs.PR.result, vars = vars.PR.result, stmts = stmts.PR.result, fline = (hd tokens).line, fcolumn = (hd tokens).column }, tokens = stmts.PR.tokens } where
 	fargs = parseFArgs tokens
 	funBegin = parseSymbol CBOpen fargs.PR.tokens
 	vars = parseVars funBegin.PR.tokens					// <- must be lazy

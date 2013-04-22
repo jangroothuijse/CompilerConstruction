@@ -8,7 +8,7 @@ import GenEq
 :: Prog :== [Decl]
 :: Decl = V VarDecl | F FunDecl
 :: VarDecl  = { type :: Type, name :: Id, exp :: Exp }
-:: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], stmts :: [Stmt] }
+:: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], stmts :: [Stmt], fline :: Int, fcolumn :: Int }
 :: RetType = RT Type | TVoid
 :: Type = TInt | TBool | TTup (Type, Type) | TList Type | TId Id | TFun RetType [Type] | TEmpty | TFixed Id
 :: FArg = { argType :: Type, argName :: Id }

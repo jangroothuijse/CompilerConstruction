@@ -65,14 +65,17 @@ returnHelp ue=:{ e = e, console = console }
 | isJust e.functionId = ue
 = { ue & console = console <<< "Return used outside of function body" }
 
-returnError :: *UEnv String -> *UEnv
-returnError ue=:{ e = e, console = console } s = { UEnv | ue & console = console <<< (s +++ (if (isJust e.functionId) (" in function " +++ (fromJust e.functionId)) "")+++ "\n"), e = e, error = True }
+returnError :: *UEnv String FunDecl -> *UEnv
+returnError ue=:{ e = e, console = console } s f = { UEnv | ue & console = console <<<
+	(s +++ (if (isJust e.functionId) (" in function " +++ (fromJust e.functionId)) "") +++ " on line " +++
+	(toString f.fline) +++ " column " +++ (toString f.fcolumn) +++ "\n"), e = e, error = True }
 
 returnCheck :: *UEnv FunDecl -> *UEnv
-returnCheck e f = let (g, b) = foldl (rtCheck) (e, False) f.stmts in if (b || (isVoid f.retType)) g (returnError g ("Not all branches have a return " +++ (toString f.retType) +++ " " +++ (toString (isVoid f.retType))))
+returnCheck e f = let (g, b) = foldl (rtCheck) (e, False) f.stmts in if (b || (isVoid f.retType)) g (returnError g ("Not all branches have a return " +++
+	(toString f.retType) +++ " " +++ (toString (isVoid f.retType))) f)
 where
 	rtCheck :: !(!*UEnv, !Bool) Stmt -> (*UEnv, Bool)
-	rtCheck (e, True) _ 		= (returnError e "Unreachable code found (statements after return)", True)
+	rtCheck (e, True) _ 		= (returnError e "Unreachable code found (statements after return)" f, True)
 	rtCheck t (Block stmts) 	= foldl (rtCheck) t stmts
 	rtCheck t (If _ stmt) 		= (fst (rtCheck t stmt), False) // An if cannot definitively return, but can throw unreachale errors
 	rtCheck t (Ife _ s1 s2) 	= let (e, b1) = (rtCheck t s1) in (let (e2, b2) = (rtCheck (e, False) s2) in (e2, b1 && b2))
