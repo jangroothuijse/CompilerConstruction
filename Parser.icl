@@ -24,8 +24,8 @@ parseDecl t
 
 parseSymbol :: Symbol [Token] -> PR Unit
 parseSymbol t [{token = s}:xs] = { PR | result = Unit, tokens = xs }
-parseSymbol t [x:xs] = abort (parseError [x:xs] ("Expecting: " +++ (toString t) +++ " found: " +++ (toString x.Token.token)))
-parseSymbol _ _ = abort (parseError [] "")
+parseSymbol t [x:xs] = parseError [x:xs] ("Expecting: " +++ (toString t) +++ " found: " +++ (toString x.Token.token))
+parseSymbol _ _ = parseError [] ""
 
 parseFunDecl :: RetType Id [Token] -> PR Decl
 parseFunDecl type name tokens = { PR | result = F { retType = type, funName = name, args = fargs.PR.result, vars = vars.PR.result, stmts = stmts.PR.result, fline = (hd tokens).line, fcolumn = (hd tokens).column }, tokens = stmts.PR.tokens } where
@@ -39,7 +39,7 @@ parseFArgs tokens = f argsBegin.tokens [] where
 	argsBegin = parseSymbol POpen tokens
 	f :: [Token] ![FArg] -> PR [FArg]
 	f [{token = PClose}:xs] acc = { PR | result = acc, tokens = xs }
-	f [x=:{token = Comma}:xs] [] = abort (parseError [x:xs] "Argument list cannot start with comma")
+	f [x=:{token = Comma}:xs] [] = parseError [x:xs] "Argument list cannot start with comma"
 	f [x=:{token = Comma}:xs] acc = f xs acc
 	f tokens acc = let t = parseType tokens in let i = parseId t.PR.tokens in f i.PR.tokens (acc ++ [{ FArg | argType = t.PR.result, argName = i.PR.result }]) 
 	
@@ -62,7 +62,7 @@ parseType [{token = KInt}:xs] = { PR | result = TInt, tokens = xs }
 parseType [{token = (Identifier i)}:xs] = { PR | result = (TId i), tokens = xs }
 parseType [{token = SBOpen}:xs] = let i = parseType xs in { PR | result = (TList i.PR.result), tokens = (parseSymbol SBClose i.PR.tokens).PR.tokens }
 parseType [{token = POpen}:xs] = let t = ((parseType) ~># ((parseSymbol Comma) ~>- parseType)) xs in { PR | result = TTup t.PR.result, tokens = (parseSymbol SBClose t.PR.tokens).PR.tokens }
-parseType t = abort (parseError t " Failed to parse type")
+parseType t = parseError t " Failed to parse type"
 
 propNothing :: (Maybe a) b -> Maybe b
 propNothing x y = if (isNothing x) Nothing (Just y)
@@ -81,7 +81,7 @@ parseMaybeType [{token = POpen}:xs] = if (isJust t1 && split && isJust t2 && tup
 parseMaybeType t = Nothing
 
 parseId [{token = Identifier i}:xs] = { PR | result = i, tokens = xs }
-parseId tokens = abort (parseError tokens "expected identifier")
+parseId tokens = parseError tokens "expected identifier"
 
 parseStmtsRec resultHead tokens = let next = parseStmts tokens in { PR | result = [resultHead:next.PR.result], tokens = next.PR.tokens }
 
@@ -105,13 +105,13 @@ parseStmt [{token = KIf}:xs] = if ((hd thenBlock.PR.tokens).Token.token === KEls
 parseStmt [{token = (Identifier i)}:[{token = KAssign}:xs]] = let e = (parseExp ~> (parseSymbol Semicolon)) xs in { PR | result = Ass i e.PR.result, tokens = e.PR.tokens }
 parseStmt [{token = (Identifier i)}:[{token = POpen}:xs]] = { PR | result = SFC { FunCall | callName = i, callArgs = fa }, tokens = (parseSymbol Semicolon xxs).tokens }
 where { result = fa, tokens = xxs } = parseFArgExps xs
-parseStmt tokens = abort (parseError tokens "statement expected while parsing statements")
+parseStmt tokens = parseError tokens "statement expected while parsing statements"
 
 parseFArgExps :: [Token] -> PR [Exp]
 parseFArgExps xs = f xs [] where
 	f :: [Token] ![Exp] -> PR [Exp]
 	f [{token = PClose}:xs] acc = pr acc xs
-	f xs=:[{token = Comma}:_] [] = abort (parseError xs " unexpected comma ")
+	f xs=:[{token = Comma}:_] [] = parseError xs " unexpected comma "
 	f xs [] = let e = parseExp xs in f e.PR.tokens [e.PR.result]
 	f [{token = Comma}:xs] acc = let e = parseExp xs in f e.PR.tokens (acc ++ [e.PR.result])
 
@@ -126,8 +126,9 @@ instance toString Symbol where toString s = abort "undef"
 (~>-) infixl 7 :: (Parse a) (Parse b) -> ([Token] -> PR b)		// Requires ab, returns b
 (~>-) a b = (\t -> let ra = a t in b ra.PR.tokens)
 
-parseError [] e = "PARSE ERROR: Unexpected end of file " +++ e
-parseError [x:xs] e = ("PARSE ERROR: " +++ e +++ " on line " +++ (toString x.Token.line) +++ " column " +++ (toString x.Token.column) +++ "\n")
+parseError :: [Token] String -> a
+parseError [] e = abort ("PARSE ERROR: Unexpected end of file " +++ e)
+parseError [x:xs] e = abort ("PARSE ERROR: " +++ e +++ " on line " +++ (toString x.Token.line) +++ " column " +++ (toString x.Token.column) +++ "\n")
 
 parseExp :: [Token] -> PR Exp
 parseExp t = let e = parseAndExp t in if (not ((hd e.PR.tokens).Token.token === (Op Cons))) (pr e.PR.result e.PR.tokens)
@@ -172,11 +173,11 @@ where
 	parseFactorExp tokens=:[{token = KFalse}:xs] = pr (e2 EFalse tokens) xs
 	parseFactorExp tokens=:[{token = SBOpen}:[{token = SBClose}:xs]] = pr (e2 EBlock tokens) xs
 	parseFactorExp tokens=:[{token = POpen}:xs] = case e.PR.tokens of
-		[{token = Comma}:xxs] = let ex = parseExp xxs in if ((hd ex.PR.tokens).token === PClose) (pr (e2 (Tup e.PR.result ex.PR.result) tokens) (tl ex.PR.tokens)) (abort (parseError xxs "expecting )"))
+		[{token = Comma}:xxs] = let ex = parseExp xxs in if ((hd ex.PR.tokens).token === PClose) (pr (e2 (Tup e.PR.result ex.PR.result) tokens) (tl ex.PR.tokens)) (parseError xxs "expecting )")
 		[{token = PClose}:xss] = pr (e2 (EBrace e.PR.result) tokens) xss
-		_ = abort (parseError xs "expecting ) or ,")
+		_ = parseError xs "expecting ) or ,"
 	where e = parseExp xs
 	parseFactorExp tokens=:[{token = Identifier name}:[{token = POpen}:xs]] = let args = parseFArgExps xs in 
 											pr (e2 (EFC { FunCall | callName = name, callArgs = args.PR.result }) tokens) args.PR.tokens
 	parseFactorExp tokens=:[{token = Identifier name}:xs] = pr (e2 (I name) tokens) xs
-	parseFactorExp tokens = abort (parseError tokens "expecting expression")
+	parseFactorExp tokens = parseError tokens "expecting expression"
