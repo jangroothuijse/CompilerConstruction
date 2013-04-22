@@ -1,7 +1,6 @@
 definition module PrettyPrinter
 
 import Tokenizer
-import Result
 import Parser
 import StdEnv
 

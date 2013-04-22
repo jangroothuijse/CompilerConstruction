@@ -2,7 +2,6 @@ implementation module Tokenizer
 
 import StdEnv
 import StdMaybe
-import Result
 import GenEq
 
 :: Tokenizer :== [CharMeta] -> Maybe ([CharMeta], [Token])

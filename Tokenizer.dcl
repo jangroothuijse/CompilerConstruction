@@ -1,7 +1,6 @@
 definition module Tokenizer
 
 import StdMaybe
-import Result
 import GenEq
 
 :: Token = { token :: Symbol, line :: Int, column :: Int }

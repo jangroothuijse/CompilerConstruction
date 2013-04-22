@@ -5,7 +5,6 @@ import ArgEnv
 import Tokenizer
 import Parser
 import PrettyPrinter
-import Result
 import SemanticAnalyzer
 import SPLDefaultEnv
 
@@ -23,10 +22,10 @@ Start world
 #   (succes, file, world)   = fopen filename FReadText world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # console = console <<< ("Compiling " +++ filename +++ "\n")
-|	size args > 2 && args.[2] == "-print" = prettyPrint console (parse (tokenize (toLines file)))
+|	size args > 2 && args.[2] == "-print" = prettyPrint console ((parse o tokenize o toLines) file)
 
 # defaultEnv = splDefaultEnv console
-# { console = console, error = error } = (analyze defaultEnv (parse (tokenize (toLines file))))
+# { console = console, error = error } = analyze defaultEnv ((parse o tokenize o toLines) file)
 | error = console <<< "Semantic analyzes found errors, program rejected\n"
 = console <<< "Semantic analysis completed, no errors where found\n"
 
