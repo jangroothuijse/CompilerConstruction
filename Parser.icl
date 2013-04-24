@@ -14,20 +14,23 @@ parse [] = []
 parse tokens = let r = parseDecl tokens in [r.PR.result : parse r.PR.tokens]
 	
 parseDecl :: [Token] -> PR Decl
+parseDecl [] = parseError [] "expecting declaration"
 parseDecl t
 |		(hd t).Token.token === KVoid = let iden = parseId (tl t) in parseFunDecl TVoid iden.result iden.tokens
 #		type = parseType t		
 #		iden = parseId type.PR.tokens
+|		isEmpty iden.tokens =  abort "parseDecl Failed"
 |		(hd iden.tokens).Token.token === KAssign = let exp = parseExp (tl iden.PR.tokens) in let semi = parseSymbol Semicolon exp.PR.tokens in
 			 { PR | tokens = semi.PR.tokens, result = V { VarDecl | type = type.result, name = iden.PR.result, exp = exp.PR.result } }
 =		parseFunDecl (RT type.result) iden.result iden.tokens
 
 parseSymbol :: Symbol [Token] -> PR Unit
 parseSymbol t [{token = s}:xs] = { PR | result = Unit, tokens = xs }
-parseSymbol t [x:xs] = parseError [x:xs] ("Expecting: " +++ (toString t) +++ " found: " +++ (toString x.Token.token))
-parseSymbol _ _ = parseError [] ""
+parseSymbol t [x:xs] = parseError [x:xs] ("Unexpected token")
+parseSymbol t _ = parseError [] ""
 
 parseFunDecl :: RetType Id [Token] -> PR Decl
+parseFunDecl type name [] = parseError [] "expecting function body"
 parseFunDecl type name tokens = { PR | result = F { retType = type, funName = name, args = fargs.PR.result, vars = vars.PR.result, stmts = stmts.PR.result, fline = (hd tokens).line, fcolumn = (hd tokens).column }, tokens = stmts.PR.tokens } where
 	fargs = parseFArgs tokens
 	funBegin = parseSymbol CBOpen fargs.PR.tokens
@@ -115,8 +118,6 @@ parseFArgExps xs = f xs [] where
 	f xs [] = let e = parseExp xs in f e.PR.tokens [e.PR.result]
 	f [{token = Comma}:xs] acc = let e = parseExp xs in f e.PR.tokens (acc ++ [e.PR.result])
 
-instance toString Symbol where toString s = abort "undef"
-
 (~>) infixl 7 :: (Parse a) (Parse b) -> ([Token] -> PR a)			// Requires ab, returns a
 (~>) a b = (\t -> let ra = a t in let rb = b ra.PR.tokens in { PR | ra & tokens = rb.PR.tokens })
 
@@ -127,45 +128,46 @@ instance toString Symbol where toString s = abort "undef"
 (~>-) a b = (\t -> let ra = a t in b ra.PR.tokens)
 
 parseError :: [Token] String -> a
-parseError [] e = abort ("PARSE ERROR: Unexpected end of file " +++ e)
+parseError [] e = abort ("PARSE ERROR: Unexpected end of file " +++ e +++ "\n")
 parseError [x:xs] e = abort ("PARSE ERROR: " +++ e +++ " on line " +++ (toString x.Token.line) +++ " column " +++ (toString x.Token.column) +++ "\n")
 
 parseExp :: [Token] -> PR Exp
-parseExp t = let e = parseAndExp t in if (not ((hd e.PR.tokens).Token.token === (Op Cons))) (pr e.PR.result e.PR.tokens)
+parseExp [] = abort "No parseExp"
+parseExp t = let e = parseAndExp t in if (isEmpty e.PR.tokens || not ((hd e.PR.tokens).Token.token === (Op Cons))) (pr e.PR.result e.PR.tokens)
 	(let ex = parseExp (tl e.PR.tokens) in { PR | result = e2 (Op2 e.PR.result PCons ex.PR.result) t, tokens = ex.PR.tokens }) // <- Cons right asso
 where
+	e2 e1 [] = abort "No e2"
 	e2 e1 t = { Exp | ex = e1, eline = (hd t).Token.line, ecolumn = (hd t).Token.column }	
 	f op2 tx e g = let ex = g tx in { PR | result = e2 (Op2 e.PR.result op2 ex.PR.result) t, tokens = ex.PR.tokens }
-	parseAndExp t = let e = parseOrExp t in if (not ((hd e.PR.tokens).Token.token === (Op And))) (pr e.PR.result e.PR.tokens)
-		(let ex = parseOrExp (tl e.PR.tokens) in { PR | result = e2 (Op2 e.PR.result PAnd ex.PR.result) t, tokens = ex.PR.tokens })	// <- Others left asso
-	parseOrExp t = let e = parseRelExp t in if (not ((hd e.PR.tokens).Token.token === (Op Or))) (pr e.PR.result e.PR.tokens)
-		(let ex = parseRelExp (tl e.PR.tokens) in { PR | result = e2 (Op2 e.PR.result POr ex.PR.result) t, tokens = ex.PR.tokens })
-	parseRelExp t = case e.PR.tokens of 
-		[{token = Op op}:tx] = case op of
-			Eq	= f PEq tx e (parseSumExp)
-			LT	= f PLT tx e (parseSumExp)
-			GT	= f PGT tx e (parseSumExp)
-			LTE = f PLTE tx e (parseSumExp)
-			GTE = f PGTE tx e (parseSumExp)
-			NEq = f PNEq tx e (parseSumExp)
-			_	= (pr e.PR.result e.PR.tokens)
-		t 	=	(pr e.PR.result e.PR.tokens)
-	where e = parseSumExp t
-	parseSumExp t = case e.PR.tokens of 
-		[{token = Op op}:tx] = case op of
-			Plus	= f PPlus tx e (parseTermExp)
-			Min		= f PMin tx e (parseTermExp)
-			_	= (pr e.PR.result e.PR.tokens)
-		t 	=	(pr e.PR.result e.PR.tokens)
-	where e = parseTermExp t
-	parseTermExp t = case e.PR.tokens of 
-		[{token = Op op}:tx] = case op of
-			Mul		= f PMul tx e (parseFactorExp)
-			Div		= f PDiv tx e (parseFactorExp)
-			Mod		= f PMod tx e (parseFactorExp)
-			_	= (pr e.PR.result e.PR.tokens)
-		t 	=	(pr e.PR.result e.PR.tokens)
-	where e = parseFactorExp t
+	parseAndExp t = let e = parseOrExp t in parseAndExpMore e.PR.result e.PR.tokens
+	parseAndExpMore acc t=:[{token = Op And}:tx] = let e = parseOrExp tx in parseAndExpMore (e2 (Op2 acc PAnd e.PR.result) tx) e.tokens
+	parseAndExpMore acc t = (pr acc t)
+	parseOrExp t = let e = parseRelExp t in parseOrExpMore e.PR.result e.PR.tokens
+	parseOrExpMore acc t=:[{token = Op Or}:tx] = let e = parseRelExp tx in parseOrExpMore (e2 (Op2 acc POr e.PR.result) tx) e.tokens
+	parseOrExpMore acc t = (pr acc t)
+	parseRelExp t = let e = parseSumExp t in parseRelExpMore e.PR.result e.PR.tokens
+	parseRelExpMore acc t=:[{token = Op op}:tx] = case op of
+			Eq	= let e = parseTermExp tx in parseRelExpMore (e2 (Op2 acc PEq e.PR.result) tx) e.tokens
+			LT	= let e = parseTermExp tx in parseRelExpMore (e2 (Op2 acc PLT e.PR.result) tx) e.tokens
+			GT	= let e = parseTermExp tx in parseRelExpMore (e2 (Op2 acc PGT e.PR.result) tx) e.tokens
+			LTE = let e = parseTermExp tx in parseRelExpMore (e2 (Op2 acc PLTE e.PR.result) tx) e.tokens
+			GTE = let e = parseTermExp tx in parseRelExpMore (e2 (Op2 acc PGTE e.PR.result) tx) e.tokens
+			NEq = let e = parseTermExp tx in parseRelExpMore (e2 (Op2 acc PNEq e.PR.result) tx) e.tokens
+			_	= (pr acc t)
+	parseRelExpMore acc t 	=	(pr acc t)
+	parseSumExp t = let e = parseTermExp t in parseSumExpMore e.PR.result e.PR.tokens	
+	parseSumExpMore acc t=:[{token = Op op}:tx] = case op of
+			Plus	= let e = parseTermExp tx in parseSumExpMore (e2 (Op2 acc PPlus e.PR.result) tx) e.tokens
+			Min		= let e = parseTermExp tx in parseSumExpMore (e2 (Op2 acc PMin e.PR.result) tx) e.tokens
+			_	= (pr acc t)
+	parseSumExpMore acc t 	=	(pr acc t)
+	parseTermExp t = let e = parseFactorExp t in parseTermExpMore e.PR.result e.PR.tokens	
+	parseTermExpMore acc t=:[{token = Op op}:tx] = case op of
+			Mul		= let e = parseFactorExp tx in parseTermExpMore (e2 (Op2 acc PMul e.PR.result) tx) e.tokens
+			Div		= let e = parseFactorExp tx in parseTermExpMore (e2 (Op2 acc PDiv e.PR.result) tx) e.tokens
+			Mod		= let e = parseFactorExp tx in parseTermExpMore (e2 (Op2 acc PDiv e.PR.result) tx) e.tokens
+			_	= (pr acc t)
+	parseTermExpMore acc t 	= (pr acc t)	
 	parseFactorExp tokens=:[{token = Op Not}:xs] = let e = parseExp xs in pr (e2 (Op1 PNot e.PR.result) tokens) e.PR.tokens
 	parseFactorExp tokens=:[{token = Op Min}:xs] = let e = parseExp xs in pr (e2 (Op1 PNeg e.PR.result) tokens) e.PR.tokens
 	parseFactorExp tokens=:[{token = Integer z}:xs] = pr (e2 (EInt z) tokens) xs
