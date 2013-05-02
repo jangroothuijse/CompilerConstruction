@@ -25,8 +25,7 @@ parseDecl t
 =		parseFunDecl (RT type.result) iden.result iden.tokens
 
 parseSymbol :: Symbol [Token] -> PR Unit
-parseSymbol t [{token = s}:xs] = { PR | result = Unit, tokens = xs }
-parseSymbol t [x:xs] = parseError [x:xs] ("Unexpected token")
+parseSymbol t [{token = s}:xs] = if (t === s) { PR | result = Unit, tokens = xs } (parseError xs ("Unexpected token"))
 parseSymbol t _ = parseError [] ""
 
 parseFunDecl :: RetType Id [Token] -> PR Decl
@@ -132,7 +131,6 @@ parseError [] e = abort ("PARSE ERROR: Unexpected end of file " +++ e +++ "\n")
 parseError [x:xs] e = abort ("PARSE ERROR: " +++ e +++ " on line " +++ (toString x.Token.line) +++ " column " +++ (toString x.Token.column) +++ "\n")
 
 parseExp :: [Token] -> PR Exp
-parseExp [] = abort "No parseExp"
 parseExp t = let e = parseAndExp t in if (isEmpty e.PR.tokens || not ((hd e.PR.tokens).Token.token === (Op Cons))) (pr e.PR.result e.PR.tokens)
 	(let ex = parseExp (tl e.PR.tokens) in { PR | result = e2 (Op2 e.PR.result PCons ex.PR.result) t, tokens = ex.PR.tokens }) // <- Cons right asso
 where
