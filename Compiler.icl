@@ -7,6 +7,7 @@ import Parser
 import PrettyPrinter
 import SemanticAnalyzer
 import SPLDefaultEnv
+import IRBuilder
 
 toLines :: *File -> [String]
 toLines file
