@@ -11,15 +11,15 @@ Mark local and global variable references.
 */
 
 :: IR :== [IRFun]
-:: IRFun = { name :: Id, blocks :: [Block]} // Id from parser is unique, since overloading is not allowed
-:: Block = { name :: Id, commands :: [Command]} // Generated Id
-:: Command = CExp [CExp] | Assing Id | JumpTrue Id Id // JumpTrue can be used for If, If..Else and while. First ID is for when prev. command was True and second Id for when it was false.
-	| CFCall Id | Return Int // The Int in Return represent the number of parameters (to remove them from stack).
-:: CExp =
-	  Read Id	// Read a var and put it on the stack.
+:: IRFun = { name :: CId, blocks :: [Block]} // Id from parser is unique, since overloading is not allowed
+:: Block = { name :: CId, commands :: [Command]} // Generated Id
+:: Command = CExp [CExp] | CAssing CId | JumpTrue CId CId // JumpTrue can be used for If, If..Else and while. First ID is for when prev. command was True and second Id for when it was false.
+	| CFCall CId | CReturn Int // The Int in Return represent the number of parameters (to remove them from stack).
+	| CDrop Int // Drop unused result from stack.
+:: CExp = Read CId	// Read a var and put it on the stack.
 	| Readl Int // Read a local var or param. (First param is -n, second (-n)+1, ... last param is -1, first local var is 0, second 1, ...)
 	| EOp Int	// Call operator n. (+, -, *, / etc. All build in operators).
-	| EFCall Id	// Call function Id. We add a function to generate Tupels and Lists.
+	| EFCall CId	// Call function Id. We add a function to generate Tupels and Lists.
 	| Put Int	// All values are transformed to Int, this Int could be a Int, a Bool or a Char. Tupels and list's do not exist as primitives but can be created by functions and read from vars.
 // Example of Command:
 /*
@@ -32,4 +32,4 @@ Would change into:
 					, { name = "f_b2", commands = [CExp [Put 'True'], Return]}
 					, { name = "f_b3", commands = [CExp [Put 'False'], Return]}]}]
 */
-:: Id :== String
+:: CId :== String
