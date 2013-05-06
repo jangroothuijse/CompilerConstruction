@@ -1,5 +1,7 @@
 definition module IRBuilder
 
+from Parser import :: Prog, :: Decl
+
 // Change the AST into a intermediate representation to make code generation easier.
 
 /*
@@ -33,3 +35,5 @@ Would change into:
 					, { name = "f_b3", commands = [CExp [Put 'False'], Return]}]}]
 */
 :: CId :== String
+
+toIR :: Prog -> IR
