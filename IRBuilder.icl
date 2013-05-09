@@ -1,69 +1,65 @@
 implementation module IRBuilder
 
-import StdEnv, Parser
+import StdEnv, Parser, SemanticAnalyzer
 
 Start = 0
 
 // TODO overloading for toIR and toExp
 
-toIR :: Prog -> IR
-toIR prog = (flatten (map toIRDecl prog)) ++ (toMain prog)
+toIR :: (Prog, *UEnv) -> (IR, *UEnv)
+toIR (prog, ue=:{e = env}) = ((flatten (map (toIRDecl env) prog)) ++ (toMain prog), ue)
 	
-toIRDecl :: Decl -> [IRFun]
-toIRDecl (F { funName = "main"}) = []
-toIRDecl (F { funName = name, args = args, vars = vars, stmts = stmts }) = [{ IRFun | name = name, blocks = (toBlockArgs args) ++ (toIRVarDecls vars) ++ (toBlockStmts name 0 stmts)}]
-toIRDecl (V var) = [toIRBlock (toIRVarDecl var)]
+toIRDecl :: Env Decl -> [IRFun]
+toIRDecl env (F { funName = "main"}) = []
+toIRDecl env (F { funName = name, args = args, vars = vars, stmts = stmts }) = [{ IRFun | name = name, blocks = (toIRVarDecls args vars) ++ (toBlockStmts env args vars name stmts)}]
+toIRDecl env (V var) = [toIRBlock env (toIRVarDecl [] [] var)]
 
-toIRBlock :: Block -> IRFun
-toIRBlock block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
+toIRBlock :: Env Block -> IRFun
+toIRBlock env block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
 
-toIRVarDecls :: [VarDecl] -> [Block]
-toIRVarDecls vars = map toIRVarDecl vars
+toIRVarDecls :: [FArg] [VarDecl] -> [Block]
+toIRVarDecls args vars = map (toIRVarDecl args vars) vars
 
-toIRVarDecl :: VarDecl -> Block
-toIRVarDecl {name = name, exp = exp} = {Block | name = "$" +++ name, commands = toIRExp exp}
+toIRVarDecl :: [FArg] [VarDecl] VarDecl -> Block
+toIRVarDecl args vars {name = name, exp = exp} = {Block | name = "$" +++ name, commands = toIRExp args (takeWhile (\x=x.VarDecl.name <> name) vars) exp, depth = 0}
 
-toIRExp :: Exp -> [Command]
-toIRExp { ex = exp } = [CExp (toExpExp2 exp)]
+toIRExp :: [FArg] [VarDecl] Exp -> [Command]
+toIRExp args vars exp = [CExp (toExpExp args vars exp)]
 
-toExpExp :: Exp -> [CExp]
-toExpExp { ex = exp } = toExpExp2 exp
+toExpExp :: [FArg] [VarDecl] Exp -> [CExp]
+toExpExp args vars { ex = exp } = toExpExp2 args vars exp
 
-toExpExp2 :: Exp2 -> [CExp]
-toExpExp2 (I name) = [Read name]
-toExpExp2 (Op2 ex1 op2 ex2) = (toExpExp ex1) ++ (toExpExp ex2) ++ (toExpOp2 op2)
-toExpExp2 (Op1 op1 exp) = (toExpExp exp) ++ (toExpOp1 op1)
-toExpExp2 (EInt int) = [Put int]
-toExpExp2 EFalse = [Put 0]
-toExpExp2 ETrue = [Put 1]
-toExpExp2 (EBrace exp) = toExpExp exp
-toExpExp2 (EFC f) = toExpFCall f
-//toExpExp2 EBlock = createEblock
-//toExpExp2 Tup ex1 ex2 = (toExpExp ex1) ++ (toExpExp ex2) ++ createTup
+toExpExp2 :: [FArg] [VarDecl] Exp2 -> [CExp]
+toExpExp2 args vars (I name) = [Read name] // TODO Read or Readl?
+toExpExp2 args vars (Op2 ex1 op2 ex2) = (toExpExp args vars ex1) ++ (toExpExp args vars ex2) ++ [EOp2 op2]
+toExpExp2 args vars (Op1 op1 exp) = (toExpExp args vars exp) ++ [EOp1 op1]
+toExpExp2 _ _ (EInt int) = [Put int]
+toExpExp2 _ _ EFalse = [Put 0]
+toExpExp2 _ _ ETrue = [Put 1]
+toExpExp2 args vars (EBrace exp) = toExpExp args vars exp
+toExpExp2 args vars (EFC f) = toExpFCall args vars f
+toExpExp2 _ _ EBlock = [EFCall "$$createEBlock"]
+toExpExp2 args vars (Tup ex1 ex2) = (toExpExp args vars ex1) ++ (toExpExp args vars ex2) ++ [EFCall "$$createTup"]
 
-toExpFCall :: FunCall -> [CExp]
-toExpFCall { callName = name, callArgs = exp } = (flatten (map toExpExp exp)) ++ [EFCall name]
+toExpFCall :: [FArg] [VarDecl] FunCall -> [CExp]
+toExpFCall args vars { callName = name, callArgs = exp } = (flatten (map (toExpExp args vars) exp)) ++ [EFCall name]
 
-toBlockArgs :: [FArg] -> [Block]
-toBlockArgs [{ argName = name }:xs] = [{ name = name, commands = []}: toBlockArgs xs]
-toBlockArgs [] = []
-
-toBlockStmts :: CId Int [Stmt] -> [Block]
-toBlockStmts name i s = blocks
+toBlockStmts :: Env [FArg] [VarDecl] CId [Stmt] -> [Block]
+toBlockStmts env args vars name s
+#(commands, blocks, _) = toBlockStmts s 0 0
+=[{name = name, commands = commands, depth = 0}:blocks]
 	where
-	(blocks, _) = toBlockStmts name i s
-	toBlockStmts :: CId Int [Stmt] -> ([Block], Int)
-	toBlockStmts name i [s:xs]
-	#(block , i) = toBlockStmt  name i s // also return name of next stmt block
-	#(blocks, i) = toBlockStmts name i xs
-	=(block ++ blocks, i)
-	toBlockStmts name i [] = ([], i)
-	toBlockStmt :: CId Int Stmt -> ([Block], Int)
-	toBlockStmt name i (Block stmts) = toBlockStmts name i stmts
-//	toBlockStmt name i (If Exp Stmt) = 
-// If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp | SFC FunCall | Return | Returne Exp
+	toBlockStmts :: [Stmt] Int Int -> ([Command], [Block], Int)
+	toBlockStmts [x:xs] depth i
+	#(commands, blocks, i) = toBlockStmt x depth i
+	#(commands`, blocks`, i) = toBlockStmts xs depth i
+	=(commands ++ commands`, blocks ++ blocks`, i)
+	toBlockStmt :: Stmt Int Int -> ([Command], [Block], Int)
+	toBlockStmt (Block stmt) depth i
+	#id = name +++ "$"  +++ (toString i)
+	#(commands, blocks, i) = toBlockStmts stmt (depth + 1) (i+1)
+	= ([Branch id], [{ name = id, commands = commands, depth = depth + 1}:blocks], i)
+// If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp | SFC FunCall | Return | Returne Exp	
 
 // generate main
-toExpOp1 x = []
-toExpOp2 x = []
 toMain p = []

@@ -26,7 +26,7 @@ Start world
 |	size args > 2 && args.[2] == "-print" = prettyPrint console ((parse o tokenize o toLines) file)
 
 # defaultEnv = splDefaultEnv console
-# { console = console, error = error } = analyze defaultEnv ((parse o tokenize o toLines) file)
+# (_, { console = console, error = error }) = toIR (check ((parse o tokenize o toLines) file) defaultEnv)
 | error = console <<< "Semantic analyzes found errors, program rejected\n"
 = console <<< "Semantic analysis completed, no errors where found\n"
 
