@@ -18,7 +18,8 @@ Mark local and global variable references.
 :: Block = { name :: CId, commands :: [Command], depth :: Int} // Generated Id, depth = calldepth of block, required for access to local variables, parameters and for returning to previouse function.
 // TODO: New plan: Replace Jump with the target Command for now, so JumpTrue [Command] [Command] for now. Possible add a Jump with 3 commands, one for true, one for false, and one for afterwards.
 // Other problem to solve: Void function that doenst end in a return;
-:: Command = CExp [CExp] | CAssing CId | Branch CId | BranchIf CId | BranchIfElse CId CId | BranchWhile [CExp] CId // JumpWhile contains a CExp because it need to include the CExp in the loop.
+:: Command = CExp [CExp] | CAssing CId | CAssingl Int  // CAssing global and CAssingl local, same as read and readl.
+	| Branch CId | BranchIf CId | BranchIfElse CId CId | BranchWhile [CExp] CId // JumpWhile contains a CExp because it need to include the CExp in the loop.
 	| CFCall CId | CReturn | CDrop Int // Drop unused result from stack.
 :: CExp = Read CId	// Read a var and put it on the stack.
 	| Readl Int // Read a local var or param. (First param is -n, second (-n)+1, ... last param is -1, first local var is 0, second 1, ...)
