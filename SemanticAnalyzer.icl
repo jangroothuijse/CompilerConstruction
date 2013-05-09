@@ -3,11 +3,7 @@ implementation module SemanticAnalyzer
 import StdEnv, Parser, TypeChecker, PrettyPrinter
 
 check :: Prog *UEnv -> (Prog, *UEnv)
-check [] ue = ([], ue)
-check [x:xs] ue = ([x: nextDecl], nextConsole)
-where 
-	ue2 = analyze ue x
-	(nextDecl, nextConsole) = check xs ue2
+check prog ue = (prog, analyze ue prog)
 
 errorsOnly :: *UEnv a -> *UEnv | analyze a
 errorsOnly { console = console, e = e, error = error1 } s
