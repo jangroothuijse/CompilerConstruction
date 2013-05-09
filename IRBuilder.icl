@@ -48,9 +48,9 @@ toExpExp2 args vars (Tup ex1 ex2) = (toExpExp args vars ex1) ++ (toExpExp args v
 toExpFCall :: [FArg] [VarDecl] FunCall -> [CExp]
 toExpFCall args vars { callName = name, callArgs = exp } = (flatten (map (toExpExp args vars) exp)) ++ [EFCall name]
 
-toBlockStmts :: Env [FArg] [VarDecl] CId [Stmt] -> [Block]
+toBlockStmts :: Env [FArg] [VarDecl] Id [Stmt] -> [Block]
 toBlockStmts env args vars name s
-#(commands, blocks, _) = toBlockStmts s 0 0
+#(commands, blocks, _) = toBlockStmts s (length vars) 0
 =[{name = name, commands = commands, depth = 0}:blocks]
 	where
 	toBlockStmts :: [Stmt] Int Int -> ([Command], [Block], Int)
@@ -81,10 +81,9 @@ toBlockStmts env args vars name s
 	#(commands, blocks, i) = toBlockStmts [stmt] (depth + 1) (i+1)
 	=([BranchWhile exp id],[{ name = id, commands = commands, depth = (depth + 1)}:blocks], i)
 	toBlockStmt (Ass id exp) depth i
-	/*|local // TODO CAssing or CAssingl?
-		==([CExp exp, CAssingl Int],[], i)
-	*/
 	#exp = toExpExp args vars exp
+	|isLocal args vars id
+		=([CExp exp, CAssingl (getLocal args vars id (~depth-(length args)))],[], i)
 	=([CExp exp, CAssing id],[], i)
 	toBlockStmt (SFC funCall) depth i
 	#id = name +++ "$"  +++ (toString i)
@@ -92,6 +91,24 @@ toBlockStmts env args vars name s
 	=(exp ++ [CFCall funCall.callName],[], i)
 	
 // Return | Returne Exp	
+
+isLocal :: [FArg] [VarDecl] Id -> Bool
+isLocal [{FArg|argName = idx}:rg] decl id
+|idx==id	= True
+=isLocal rg decl id
+isLocal [] [{VarDecl|name = idx}:cl] id
+|idx==id = True
+=isLocal [] cl id
+isLocal [] [] id = False
+
+getLocal :: [FArg] [VarDecl] Id Int -> Int
+getLocal [{FArg|argName = idx}:rg] decl id i
+|idx==id	= i
+=getLocal rg decl id (i + 1)
+getLocal [] [{VarDecl|name = idx}:cl] id i
+|idx==id = i
+=getLocal [] cl id (i + 1)
+getLocal [] [] id i = abort ("local not found: " +++ id) // Shouldn't happen
 
 // generate main
 toMain p = []
