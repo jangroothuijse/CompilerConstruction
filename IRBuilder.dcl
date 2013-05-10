@@ -38,4 +38,10 @@ Would change into:
 					, { name = "f_b3", commands = [CExp [Put 'False'], Return]}]}]
 */
 
-toIR :: (Prog, *UEnv) -> (IR, *UEnv)
+/* Notes:
+Depth in block is not needed
+Need Label (Id) for while and if statements, Could be generated for already unique name if multiple are needed.
+Blocks called from if & while statements need to return to the orginal.
+*/
+
+toIR :: Prog -> IR

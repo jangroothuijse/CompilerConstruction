@@ -6,17 +6,17 @@ Start = 0
 
 // TODO overloading for toIR and toExp
 
-toIR :: (Prog, *UEnv) -> (IR, *UEnv)
-toIR (prog, ue=:{e = env}) = ((toMain prog) ++ (flatten (map (toIRDecl env) prog)), ue)
+toIR :: Prog -> IR
+toIR prog = toIRDecl [] prog
 
-toIRDecl :: Env Decl -> [IRFun]
-toIRDecl env (F { funName = "main"}) = []
-toIRDecl env (F { funName = name, args = args, vars = vars, stmts = stmts }) = [{ IRFun | name = name, blocks = (toBlockStmts env args vars name stmts)}]
-toIRDecl env (V var) = []
-//toIRDecl env (V var) = [toIRBlock env (toIRVarDecl [] [] var)]
 
-toIRBlock :: Env Block -> IRFun
-toIRBlock env block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
+toIRDecl :: [Decl] [Decl] -> [IRFun]
+toIRDecl mainDecls [var=:(V _):xs]	= toIRDecl (mainDecls ++ [var]) xs
+toIRDecl mainDecls [mainDecl=:(F {funName = "main"}):xs] = toMain mainDecls
+toIRDecl mainDecls [F { funName = name, args = args, vars = vars, stmts = stmts }:xs]  = [{ IRFun | name = name, blocks = (toBlockStmts args vars name stmts)}]  ++ toIRDecl mainDecls xs
+
+toIRBlock :: Block -> IRFun
+toIRBlock block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
 /*
 toIRVarDecls :: [FArg] [VarDecl] -> [Block]
 toIRVarDecls args vars = map (toIRVarDecl args vars) vars
@@ -56,8 +56,8 @@ toExpExp2 args vars (Tup ex1 ex2) = (toExpExp args vars ex1) ++ (toExpExp args v
 toExpFCall :: [FArg] [VarDecl] FunCall -> [CExp]
 toExpFCall args vars { callName = name, callArgs = exp } = (flatten (map (toExpExp args vars) exp)) ++ [EFCall name]
 
-toBlockStmts :: Env [FArg] [VarDecl] Id [Stmt] -> [Block]
-toBlockStmts env args vars name s
+toBlockStmts :: [FArg] [VarDecl] Id [Stmt] -> [Block]
+toBlockStmts args vars name s
 #varblock = toIRLocVarDecls args vars
 #(commands, blocks, _) = toBlockStmts s (length vars) 0
 =[{name = name, commands = varblock ++ commands, depth = 0}:blocks]
@@ -125,4 +125,5 @@ getLocal [] [{VarDecl|name = idx}:cl] id i
 getLocal [] [] id i = abort ("local not found: " +++ id) // Shouldn't happen
 
 // generate main
+toMain :: [Decl] -> IR
 toMain p = []

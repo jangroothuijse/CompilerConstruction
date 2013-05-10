@@ -24,10 +24,12 @@ Start world
 #   (succes, file, world)   = fopen filename FReadText world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # console = console <<< ("Compiling " +++ filename +++ "\n")
-|	size args > 2 && args.[2] == "-print" = prettyPrint console ((parse o tokenize o toLines) file)
-
+# prog = (parse o tokenize o toLines) file
+|	size args > 2 && args.[2] == "-print"
+	#console = console <<< prettyPrint console prog
+	= abort ""
 # defaultEnv = splDefaultEnv console
-# (_, { console = console, error = error }) = toIR (check ((parse o tokenize o toLines) file) defaultEnv)
-| error = console <<< "Semantic analyzes found errors, program rejected\n"
-= console <<< "Semantic analysis completed, no errors where found\n"
-
+# { console = console, error = error } = analyze defaultEnv prog
+| error = abort "Semantic analyzes found errors, program rejected\n"
+# console = abort "Semantic analysis completed, no errors where found\n"
+= toIR prog
