@@ -59,49 +59,49 @@ toExpFCall args vars { callName = name, callArgs = exp } = (flatten (map (toExpE
 toBlockStmts :: [FArg] [VarDecl] Id [Stmt] -> [Block]
 toBlockStmts args vars name s
 #varblock = toIRLocVarDecls args vars
-#(commands, blocks, _) = toBlockStmts s (length vars) 0
-=[{name = name, commands = varblock ++ commands, depth = 0}:blocks]
+#(commands, blocks, _) = toBlockStmts s 0
+=[{name = name, commands = varblock ++ commands}:blocks]
 	where
-	toBlockStmts :: [Stmt] Int Int -> ([Command], [Block], Int)
-	toBlockStmts [x:xs] depth i
-	#(commands, blocks, i) = toBlockStmt x depth i
-	#(commands`, blocks`, i) = toBlockStmts xs depth i
+	toBlockStmts :: [Stmt] Int -> ([Command], [Block], Int)
+	toBlockStmts [x:xs] i
+	#(commands, blocks, i) = toBlockStmt x i
+	#(commands`, blocks`, i) = toBlockStmts xs i
 	=(commands ++ commands`, blocks ++ blocks`, i) // TODO: add return after void function
-	toBlockStmt :: Stmt Int Int -> ([Command], [Block], Int)
-	toBlockStmt (Block stmt) depth i
+	toBlockStmt :: Stmt Int -> ([Command], [Block], Int)
+	toBlockStmt (Block stmt) i
 	#id = name +++ "$"  +++ (toString i)
-	#(commands, blocks, i) = toBlockStmts stmt (depth + 1) (i+1)
-	=([Branch id], [{ name = id, commands = commands, depth = depth + 1}:blocks], i)
-	toBlockStmt (If exp stmt) depth i
-	#id = name +++ "$"  +++ (toString i)
-	#exp = toIRExp args vars exp
-	#(commands, blocks, i) = toBlockStmts [stmt] (depth + 1) (i+1)
-	=([exp, BranchIf id],[{ name = id, commands = commands, depth = (depth + 1)}:blocks], i)
-	toBlockStmt (Ife exp stmt1 stmt2) depth i
+	#(commands, blocks, i) = toBlockStmts stmt (i+1)
+	=([Branch id], [{ name = id, commands = commands}:blocks], i)
+	toBlockStmt (If exp stmt) i
 	#id = name +++ "$"  +++ (toString i)
 	#exp = toIRExp args vars exp
-	#(commands, blocks, i) = toBlockStmts [stmt1] (depth + 1) (i+1)
+	#(commands, blocks, i) = toBlockStmts [stmt] (i+1)
+	=([exp, BranchIf id],[{ name = id, commands = commands}:blocks], i)
+	toBlockStmt (Ife exp stmt1 stmt2) i
+	#id = name +++ "$"  +++ (toString i)
+	#exp = toIRExp args vars exp
+	#(commands, blocks, i) = toBlockStmts [stmt1] (i+1)
 	#id` = name +++ "$"  +++ (toString i)
-	#(commands`, blocks`, i) = toBlockStmts [stmt2] (depth + 1) (i+1)
-	=([exp, BranchIfElse id id`],[{ name = id, commands = commands, depth = (depth + 1)}:{ name = id`, commands = commands`, depth = (depth + 1)}:blocks], i)
-	toBlockStmt (While exp stmt) depth i
+	#(commands`, blocks`, i) = toBlockStmts [stmt2] (i+1)
+	=([exp, BranchIfElse id id`],[{ name = id, commands = commands}:{ name = id`, commands = commands`}:blocks], i)
+	toBlockStmt (While exp stmt) i
 	#id = name +++ "$"  +++ (toString i)
 	#exp = toExpExp args vars exp
-	#(commands, blocks, i) = toBlockStmts [stmt] (depth + 1) (i+1)
-	=([BranchWhile exp id],[{ name = id, commands = commands, depth = (depth + 1)}:blocks], i)
-	toBlockStmt (Ass id exp) depth i
+	#(commands, blocks, i) = toBlockStmts [stmt] (i+1)
+	=([BranchWhile exp id],[{ name = id, commands = commands}:blocks], i)
+	toBlockStmt (Ass id exp) i
 	#exp = toIRExp args vars exp
 	|isLocal args vars id
-		=([exp, CAssingl (getLocal args vars id (~depth-(length args)))],[], i)
+		=([exp, CAssingl (getLocal args vars id (~(length args)))],[], i)
 	=([exp, CAssing id],[], i)
-	toBlockStmt (SFC funCall) depth i
+	toBlockStmt (SFC funCall) i
 	#id = name +++ "$"  +++ (toString i)
 	#exp = toIRExps args vars funCall.callArgs
 	=(exp ++ [CFCall funCall.callName],[], i)
-	toBlockStmt Return depth i
+	toBlockStmt Return i
 	|(length vars)==0 = ([CReturn], [], i)
 	=([Unlink, CReturn], [], i)
-	toBlockStmt (Returne exp) depth i
+	toBlockStmt (Returne exp) i
 	#exp = toIRExp args vars exp
 	|(length vars)==0 = ([exp, CReturn], [], i)
 	=([Unlink, exp, CReturne], [], i)	

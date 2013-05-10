@@ -9,24 +9,24 @@ toSSMCode ir =flatten (map toSSMCodeFun ir)
 
 toSSMCodeFun { blocks = blocks} = flatten (map toSSMCodeBlock blocks)
 
-toSSMCodeBlock { name = name, commands = command, depth = i} = flatten (map (toSSMCommands i) command)
+toSSMCodeBlock { name = name, commands = command} = flatten (map (toSSMCommands) command)
 
-toSSMCommands :: Int Command -> [SSMCommands]
-toSSMCommands _ (CExp exp) = flatten (map toSSMCommandsExp exp)
-//toSSMCommands _ (CAssing Id) = map toSSMCommandsExp CExp  // Todo: Id to stack location
-toSSMCommands _ (CAssingl i) = [S (Sldl i)]
-toSSMCommands _ (Branch name) = [S (Sbsr name)]
-toSSMCommands _ (BranchIf name) = [S (Sbrt name), S (Sajs -1)]
-toSSMCommands _ (BranchIfElse namet namef) = [S (Sbrt namet), S (Sbrf namef), S (Sajs -1)]
-toSSMCommands i (BranchWhile exp name)
-#[S ex:exp] = toSSMCommands i (CExp exp)
+toSSMCommands :: Command -> [SSMCommands]
+toSSMCommands (CExp exp) = flatten (map toSSMCommandsExp exp)
+//toSSMCommands (CAssing Id) = map toSSMCommandsExp CExp  // Todo: Id to stack location
+toSSMCommands (CAssingl i) = [S (Sldl i)]
+toSSMCommands (Branch name) = [S (Sbsr name)]
+toSSMCommands (BranchIf name) = [S (Sbrt name), S (Sajs -1)]
+toSSMCommands (BranchIfElse namet namef) = [S (Sbrt namet), S (Sbrf namef), S (Sajs -1)]
+toSSMCommands (BranchWhile exp name)
+#[S ex:exp] = toSSMCommands (CExp exp)
 =[SL (name +++ "$") ex:exp] ++ [S (Sbrt name), S (Sajs -1)]
 /*
-toSSMCommands _ (CFCall Id) = 
-toSSMCommands _ CReturn =
-toSSMCommands _ CReturne = 
-toSSMCommands _ (Link Int) = 
-toSSMCommands _ Unlink = 
+toSSMCommands (CFCall Id) = 
+toSSMCommands CReturn =
+toSSMCommands CReturne = 
+toSSMCommands (Link Int) = 
+toSSMCommands Unlink = 
 */
 
 toSSMCommandsExp :: CExp -> [SSMCommands] 

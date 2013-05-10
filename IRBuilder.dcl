@@ -14,7 +14,7 @@ Mark local and global variable references.
 
 :: IR :== [IRFun]
 :: IRFun = { name :: Id, blocks :: [Block]} // Id from parser is unique, since overloading is not allowed
-:: Block = { name :: Id, commands :: [Command], depth :: Int} // Generated Id, depth = calldepth of block, required for access to local variables, parameters and for returning to previouse function.
+:: Block = { name :: Id, commands :: [Command]} // Generated Id, depth = calldepth of block, required for access to local variables, parameters and for returning to previouse function.
 // TODO: New plan: Replace Jump with the target Command for now, so JumpTrue [Command] [Command] for now. Possible add a Jump with 3 commands, one for true, one for false, and one for afterwards.
 // Other problem to solve: Void function that doenst end in a return;
 :: Command = CExp [CExp] | CAssing Id | CAssingl Int  // CAssing global and CAssingl local, same as read and readl.
@@ -39,7 +39,6 @@ Would change into:
 */
 
 /* Notes:
-Depth in block is not needed
 Need Label (Id) for while and if statements, Could be generated for already unique name if multiple are needed.
 Blocks called from if & while statements need to return to the orginal.
 */
