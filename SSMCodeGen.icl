@@ -1,8 +1,60 @@
 implementation module SSMCodeGen
 
-import IRBuilder
+import StdEnv, IRBuilder
 
 Start = 0
 
 toSSMCode :: IR -> SSMCode
-toSSMCode _ = []
+toSSMCode ir =flatten (map toSSMCodeFun ir)
+
+toSSMCodeFun { blocks = blocks} = flatten (map toSSMCodeBlock blocks)
+
+toSSMCodeBlock { name = name, commands = command, depth = i} = flatten (map (toSSMCommands i) command)
+
+toSSMCommands :: Int Command -> [SSMCommands]
+toSSMCommands _ (CExp exp) = flatten (map toSSMCommandsExp exp)
+//toSSMCommands _ (CAssing Id) = map toSSMCommandsExp CExp  // Todo: Id to stack location
+toSSMCommands _ (CAssingl i) = [S (Sldl i)]
+toSSMCommands _ (Branch name) = [S (Sbsr name)]
+toSSMCommands _ (BranchIf name) = [S (Sbrt name), S (Sajs -1)]
+toSSMCommands _ (BranchIfElse namet namef) = [S (Sbrt namet), S (Sbrf namef), S (Sajs -1)]
+toSSMCommands i (BranchWhile exp name)
+#[S ex:exp] = toSSMCommands i (CExp exp)
+=[SL (name +++ "$") ex:exp] ++ [S (Sbrt name), S (Sajs -1)]
+/*
+toSSMCommands _ (CFCall Id) = 
+toSSMCommands _ CReturn =
+toSSMCommands _ CReturne = 
+toSSMCommands _ (Link Int) = 
+toSSMCommands _ Unlink = 
+*/
+
+toSSMCommandsExp :: CExp -> [SSMCommands] 
+//toSSMCommandsExp (Read Id) // Todo: Id to stack location
+toSSMCommandsExp (Readl i) = [S (Sldl i)]
+toSSMCommandsExp (EOp2 op2) = toSSMCommandsOp2 op2
+toSSMCommandsExp (EOp1 op1) = toSSMCommandsOp1 op1
+toSSMCommandsExp (EFCall name) = [S (Sbsr name), S SldrRR]
+toSSMCommandsExp (Put i) = [S (Sldc i)]
+
+toSSMCommandsOp2 :: Op2 -> [SSMCommands]
+toSSMCommandsOp2 PPlus = [S Sadd]
+toSSMCommandsOp2 PMin = [S Ssub]
+toSSMCommandsOp2 PMul = [S Smul]
+toSSMCommandsOp2 PDiv = [S Sdiv]
+toSSMCommandsOp2 PMod = [S Smod]
+toSSMCommandsOp2 PEq = [S Seq]
+toSSMCommandsOp2 PLT = [S Slt]
+toSSMCommandsOp2 PGT = [S Sgt]
+toSSMCommandsOp2 PLTE = [S Sle]
+toSSMCommandsOp2 PNEq = [S Sne]
+toSSMCommandsOp2 PAnd = [S Sand]
+toSSMCommandsOp2 POr = [S Sor]
+// toSSMCommandsOp2 PCons = [Sadd] // TODO
+
+toSSMCommandsOp1 :: Op1 -> [SSMCommands]
+toSSMCommandsOp1 PNot = [S Snot]
+toSSMCommandsOp1 PNeg = [S Sneg]
+
+
+

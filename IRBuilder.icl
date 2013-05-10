@@ -7,22 +7,23 @@ Start = 0
 // TODO overloading for toIR and toExp
 
 toIR :: (Prog, *UEnv) -> (IR, *UEnv)
-toIR (prog, ue=:{e = env}) = ((flatten (map (toIRDecl env) prog)) ++ (toMain prog), ue)
-	
+toIR (prog, ue=:{e = env}) = ((toMain prog) ++ (flatten (map (toIRDecl env) prog)), ue)
+
 toIRDecl :: Env Decl -> [IRFun]
 toIRDecl env (F { funName = "main"}) = []
 toIRDecl env (F { funName = name, args = args, vars = vars, stmts = stmts }) = [{ IRFun | name = name, blocks = (toBlockStmts env args vars name stmts)}]
-toIRDecl env (V var) = [toIRBlock env (toIRVarDecl [] [] var)]
+toIRDecl env (V var) = []
+//toIRDecl env (V var) = [toIRBlock env (toIRVarDecl [] [] var)]
 
 toIRBlock :: Env Block -> IRFun
 toIRBlock env block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
-
+/*
 toIRVarDecls :: [FArg] [VarDecl] -> [Block]
 toIRVarDecls args vars = map (toIRVarDecl args vars) vars
 
 toIRVarDecl :: [FArg] [VarDecl] VarDecl -> Block
 toIRVarDecl args vars {name = name, exp = exp} = {Block | name = "$" +++ name, commands = [toIRExp args (takeWhile (\x=x.VarDecl.name <> name) vars) exp], depth = 0}
-
+*/
 toIRLocVarDecls :: [FArg] [VarDecl] -> [Command]
 toIRLocVarDecls args vars=:[va:rs] = [Link (length vars):flatten [toIRLocVarDecl args vars var x \\ var <- vars & x<-[0..]]]
 toIRLocVarDecls args [] = []
