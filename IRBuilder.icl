@@ -11,7 +11,7 @@ toIR (prog, ue=:{e = env}) = ((flatten (map (toIRDecl env) prog)) ++ (toMain pro
 	
 toIRDecl :: Env Decl -> [IRFun]
 toIRDecl env (F { funName = "main"}) = []
-toIRDecl env (F { funName = name, args = args, vars = vars, stmts = stmts }) = [{ IRFun | name = name, blocks = (toIRVarDecls args vars) ++ (toBlockStmts env args vars name stmts)}]
+toIRDecl env (F { funName = name, args = args, vars = vars, stmts = stmts }) = [{ IRFun | name = name, blocks = (toBlockStmts env args vars name stmts)}]
 toIRDecl env (V var) = [toIRBlock env (toIRVarDecl [] [] var)]
 
 toIRBlock :: Env Block -> IRFun
@@ -21,14 +21,21 @@ toIRVarDecls :: [FArg] [VarDecl] -> [Block]
 toIRVarDecls args vars = map (toIRVarDecl args vars) vars
 
 toIRVarDecl :: [FArg] [VarDecl] VarDecl -> Block
-toIRVarDecl args vars {name = name, exp = exp} = {Block | name = "$" +++ name, commands = toIRExp args (takeWhile (\x=x.VarDecl.name <> name) vars) exp, depth = 0}
+toIRVarDecl args vars {name = name, exp = exp} = {Block | name = "$" +++ name, commands = [toIRExp args (takeWhile (\x=x.VarDecl.name <> name) vars) exp], depth = 0}
+
+toIRLocVarDecls :: [FArg] [VarDecl] -> [Command]
+toIRLocVarDecls args vars=:[va:rs] = [Link (length vars):flatten [toIRLocVarDecl args vars var x \\ var <- vars & x<-[0..]]]
+toIRLocVarDecls args [] = []
+
+toIRLocVarDecl :: [FArg] [VarDecl] VarDecl Int -> [Command]
+toIRLocVarDecl args vars {exp = exp} i = [toIRExp args vars exp, CAssingl i]
 
 toIRExps :: [FArg] [VarDecl] [Exp] -> [Command]
 toIRExps args vars [] = []
-toIRExps args vars [ex:ps] = [CExp (toExpExp args vars ex)] ++ toIRExps args vars ps
+toIRExps args vars [ex:ps] = [toIRExp args vars ex] ++ toIRExps args vars ps
 
-toIRExp :: [FArg] [VarDecl] Exp -> [Command]
-toIRExp args vars exp = [CExp (toExpExp args vars exp)]
+toIRExp :: [FArg] [VarDecl] Exp -> Command
+toIRExp args vars exp = CExp (toExpExp args vars exp)
 
 toExpExp :: [FArg] [VarDecl] Exp -> [CExp]
 toExpExp args vars { ex = exp } = toExpExp2 args vars exp
@@ -50,8 +57,9 @@ toExpFCall args vars { callName = name, callArgs = exp } = (flatten (map (toExpE
 
 toBlockStmts :: Env [FArg] [VarDecl] Id [Stmt] -> [Block]
 toBlockStmts env args vars name s
+#varblock = toIRLocVarDecls args vars
 #(commands, blocks, _) = toBlockStmts s (length vars) 0
-=[{name = name, commands = commands, depth = 0}:blocks]
+=[{name = name, commands = varblock ++ commands, depth = 0}:blocks]
 	where
 	toBlockStmts :: [Stmt] Int Int -> ([Command], [Block], Int)
 	toBlockStmts [x:xs] depth i
@@ -65,32 +73,37 @@ toBlockStmts env args vars name s
 	=([Branch id], [{ name = id, commands = commands, depth = depth + 1}:blocks], i)
 	toBlockStmt (If exp stmt) depth i
 	#id = name +++ "$"  +++ (toString i)
-	#exp = toExpExp args vars exp
+	#exp = toIRExp args vars exp
 	#(commands, blocks, i) = toBlockStmts [stmt] (depth + 1) (i+1)
-	=([CExp exp, BranchIf id],[{ name = id, commands = commands, depth = (depth + 1)}:blocks], i)
+	=([exp, BranchIf id],[{ name = id, commands = commands, depth = (depth + 1)}:blocks], i)
 	toBlockStmt (Ife exp stmt1 stmt2) depth i
 	#id = name +++ "$"  +++ (toString i)
-	#exp = toExpExp args vars exp
+	#exp = toIRExp args vars exp
 	#(commands, blocks, i) = toBlockStmts [stmt1] (depth + 1) (i+1)
 	#id` = name +++ "$"  +++ (toString i)
 	#(commands`, blocks`, i) = toBlockStmts [stmt2] (depth + 1) (i+1)
-	=([CExp exp, BranchIfElse id id`],[{ name = id, commands = commands, depth = (depth + 1)}:{ name = id`, commands = commands`, depth = (depth + 1)}:blocks], i)
+	=([exp, BranchIfElse id id`],[{ name = id, commands = commands, depth = (depth + 1)}:{ name = id`, commands = commands`, depth = (depth + 1)}:blocks], i)
 	toBlockStmt (While exp stmt) depth i
 	#id = name +++ "$"  +++ (toString i)
 	#exp = toExpExp args vars exp
 	#(commands, blocks, i) = toBlockStmts [stmt] (depth + 1) (i+1)
 	=([BranchWhile exp id],[{ name = id, commands = commands, depth = (depth + 1)}:blocks], i)
 	toBlockStmt (Ass id exp) depth i
-	#exp = toExpExp args vars exp
+	#exp = toIRExp args vars exp
 	|isLocal args vars id
-		=([CExp exp, CAssingl (getLocal args vars id (~depth-(length args)))],[], i)
-	=([CExp exp, CAssing id],[], i)
+		=([exp, CAssingl (getLocal args vars id (~depth-(length args)))],[], i)
+	=([exp, CAssing id],[], i)
 	toBlockStmt (SFC funCall) depth i
 	#id = name +++ "$"  +++ (toString i)
 	#exp = toIRExps args vars funCall.callArgs
 	=(exp ++ [CFCall funCall.callName],[], i)
-	
-// Return | Returne Exp	
+	toBlockStmt Return depth i
+	|(length vars)==0 = ([CReturn], [], i)
+	=([Unlink, CReturn], [], i)
+	toBlockStmt (Returne exp) depth i
+	#exp = toIRExp args vars exp
+	|(length vars)==0 = ([exp, CReturn], [], i)
+	=([Unlink, exp, CReturne], [], i)	
 
 isLocal :: [FArg] [VarDecl] Id -> Bool
 isLocal [{FArg|argName = idx}:rg] decl id
