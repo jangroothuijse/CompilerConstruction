@@ -8,6 +8,7 @@ import PrettyPrinter
 import SemanticAnalyzer
 import SPLDefaultEnv
 import IRBuilder
+import SSMCodeGen
 
 toLines :: *File -> [String]
 toLines file
