@@ -21,7 +21,7 @@ Mark local and global variable references.
 	| Branch Id | BranchIf Id | BranchIfElse Id Id | BranchWhile [CExp] Id // JumpWhile contains a CExp because it need to include the CExp in the loop.
 	| CFCall Id | CReturn | CReturne
 	| Link Int | Unlink // (Un)reserver room on the stack for a number of local vars.
-:: CExp = Read Id	// Read a var and put it on the stack.
+:: CExp = Read Int	// Read a global var and put it on the stack.
 	| Readl Int // Read a local var or param. (First param is -n, second -n+1, ... last param is -1, first local var is 1, second 2...) 0 is the return adress on the stack.
 	| EOp2 Op2 | EOp1 Op1	// Call operator n. (+, -, *, / etc. All build in operators).
 	| EFCall Id	// Call function Id. We add a function to generate Tupels and Lists.
