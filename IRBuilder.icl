@@ -39,8 +39,8 @@ toExpExp inf { ex = exp } = toExpExp2 inf exp
 
 toExpExp2 :: IRInfo Exp2 -> [CExp]
 toExpExp2 (mainDecls, args, vars) (I name)
-|isGlobalVar mainDecls name = [Read (getGlobalVar mainDecls name)]
-=[Readl (getLocal args vars name (~(length args)))]
+|isGlobal mainDecls name = [Read (getGlobal mainDecls name)]
+=[Readl (getLocal args vars name)]
 toExpExp2 inf (Op2 ex1 op2 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EOp2 op2]
 toExpExp2 inf (Op1 op1 exp) = (toExpExp inf exp) ++ [EOp1 op1]
 toExpExp2 inf (EInt int) = [Put int]
@@ -91,8 +91,8 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	toBlockStmt (Ass id exp) i
 	#exp = toIRExp inf exp
 	|isLocal args vars id
-		=([exp, CAssingl (getLocal args vars id (~(length args)))],[], i)
-	=([exp, CAssing (getGlobal mainDecls)],[], i)
+		=([exp, CAssingl (getLocal args vars id)],[], i)
+	=([exp, CAssing (getGlobal mainDecls id)],[], i)
 	toBlockStmt (SFC funCall) i
 	#(id, i) = getId name i
 	#exp = toIRExps inf funCall.callArgs
@@ -117,17 +117,31 @@ isLocal [] [{VarDecl|name = idx}:cl] id
 =isLocal [] cl id
 isLocal [] [] id = False
 
-getLocal :: [FArg] [VarDecl] Id Int -> Int
-getLocal [{FArg|argName = idx}:rg] decl id i
-|idx==id	= i
-=getLocal rg decl id (i + 1)
-getLocal [] [{VarDecl|name = idx}:cl] id i
-|idx==id = (i + 1)
-=getLocal [] cl id (i + 1)
+isGlobal :: [Decl] Id -> Bool
+isGlobal [V {VarDecl | name = name}:xs] id
+| id == name = True
+=isGlobal xs id
+isGlobal [] _ = False
+
+getLocal :: [FArg] [VarDecl] Id -> Int
+getLocal a b c = getLocal a b c 0
+where
+	getLocal [{FArg|argName = idx}:rg] decl id i
+	|idx==id	= i
+	=getLocal rg decl id (i + 1)
+	getLocal [] [{VarDecl|name = idx}:cl] id i
+	|idx==id = (i + 1)
+	=getLocal [] cl id (i + 1)
+	getLocal [] _ _ _ = abort "getLocal used incorrect" // Shouldn't happen
+
+getGlobal :: [Decl] Id -> Int
+getGlobal a b = getGlobal a b 0
+where
+	getGlobal [V {VarDecl | name = name}:xs] id i
+	| id == name = i
+	=getGlobal xs id (i+1)
+	getGlobal [] _ _ = abort "getGlobal used incorrect" // Shouldn't happen
 
 // TODO: generate main
 toMain :: [Decl] -> IR
 toMain p = []
-isGlobalVar a b = False
-getGlobalVar a b = 0
-getGlobal _ = 0
