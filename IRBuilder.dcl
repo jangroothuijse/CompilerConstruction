@@ -16,7 +16,7 @@ Mark local and global variable references.
 :: IRFun = { name :: Id, blocks :: [Block]} // Id from parser is unique, since overloading is not allowed.
 :: Block = { name :: Id, commands :: [Command]} // Generated Id.
 // Other problem to solve: Void function that doenst end in a return;
-:: Command = CExp [CExp] | CAssing Id | CAssingl Int  // CAssing global and CAssingl local, same as read and readl.
+:: Command = CExp [CExp] | CAssing Int | CAssingl Int  // CAssing global and CAssingl local, same as read and readl.
 	| Branch Id | BranchIf Id | BranchIfElse Id Id
 	| CFCall Id | CReturn | CReturne
 	| Link Int | Unlink // (Un)reserver room on the stack for a number of local vars.

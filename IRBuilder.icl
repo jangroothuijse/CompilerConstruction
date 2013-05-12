@@ -90,7 +90,7 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#exp = toIRExp inf exp
 	|isLocal args vars id
 		=([exp, CAssingl (getLocal args vars id (~(length args)))],[], i)
-	=([exp, CAssing id],[], i)
+	=([exp, CAssing (getGlobal mainDecls)],[], i)
 	toBlockStmt (SFC funCall) i
 	#(id, i) = getId name i
 	#exp = toIRExps inf funCall.callArgs
@@ -123,8 +123,9 @@ getLocal [] [{VarDecl|name = idx}:cl] id i
 |idx==id = (i + 1)
 =getLocal [] cl id (i + 1)
 
-// generate main
+// TODO: generate main
 toMain :: [Decl] -> IR
 toMain p = []
 isGlobalVar a b = False
 getGlobalVar a b = 0
+getGlobal _ = 0

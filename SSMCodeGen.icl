@@ -13,7 +13,7 @@ toSSMCodeBlock { name = name, commands = command} = flatten (map (toSSMCommands)
 
 toSSMCommands :: Command -> [SSMCommands]
 toSSMCommands (CExp exp) = flatten (map toSSMCommandsExp exp)
-//toSSMCommands (CAssing Id) = map toSSMCommandsExp CExp  // Todo: Id to stack location
+toSSMCommands (CAssing i) = [S (Ssta i)]
 toSSMCommands (CAssingl i) = [S (Sldl i)]
 toSSMCommands (Branch name) = [S (Sbsr name)]
 toSSMCommands (BranchIf name) = [S (Sbrt name), S (Sajs -1)]
@@ -23,6 +23,7 @@ toSSMCommands CReturn = [S Sret]
 toSSMCommands CReturne = [S SstrRR, S Sret]
 toSSMCommands (Link i) = [S (Slink i)]
 toSSMCommands Unlink = [S Sunlink]
+toSSMCommands (Label s) = [SL s Snop]
 
 toSSMCommandsExp :: CExp -> [SSMCommands] 
 //toSSMCommandsExp (Read Id) // Todo: Id to stack location

@@ -45,7 +45,7 @@ instance toString SSMIns where
 	toString Snot = "not"
 	toString Sor = "or"
 	toString Sret = "ret"
-	toString Ssta = "sta"
+	toString (Ssta i) = "sta " +++ (toString i)
 	toString Sstl = "stl"
 	toString Sstma = "stma"
 	toString Sstml = "stml"
