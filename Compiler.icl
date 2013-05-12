@@ -9,6 +9,7 @@ import SemanticAnalyzer
 import SPLDefaultEnv
 import IRBuilder
 import SSMCodeGen
+import SSMWriter
 
 toLines :: *File -> [String]
 toLines file
@@ -32,4 +33,6 @@ Start world
 # { console = console, error = error } = analyze defaultEnv prog
 | error = abort "Semantic analyzes found errors, program rejected\n"
 # console = abort "Semantic analysis completed, no errors where found\n"
-= toIR prog
+# (succes, outputFile, world) = fopen "a.ssm" FWriteText world
+| not succes = abort "Fail to open output file"
+= writeSSM outputFile ((toSSMCode o toIR) prog)
