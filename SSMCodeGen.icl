@@ -5,11 +5,11 @@ import StdEnv, IRBuilder
 Start = 0
 
 toSSMCode :: IR -> SSMCode
-toSSMCode ir =flatten (map toSSMCodeFun ir)
+toSSMCode ir = [S (Sbsr "main"), S (Strap 0), S Shalt:flatten (map toSSMCodeFun ir)]
 
 toSSMCodeFun { blocks = blocks} = flatten (map toSSMCodeBlock blocks)
 
-toSSMCodeBlock { name = name, commands = command} = flatten (map (toSSMCommands) command)
+toSSMCodeBlock { name = name, commands = command} = [(SL name Snop):flatten (map (toSSMCommands) command)]
 
 toSSMCommands :: Command -> [SSMCommands]
 toSSMCommands (CExp exp) = flatten (map toSSMCommandsExp exp)
@@ -26,7 +26,7 @@ toSSMCommands Unlink = [S Sunlink]
 toSSMCommands (Label s) = [SL s Snop]
 
 toSSMCommandsExp :: CExp -> [SSMCommands] 
-//toSSMCommandsExp (Read Id) // Todo: Id to stack location
+toSSMCommandsExp (Read i) = [S (Ssta i)]
 toSSMCommandsExp (Readl i) = [S (Sldl i)]
 toSSMCommandsExp (EOp2 op2) = toSSMCommandsOp2 op2
 toSSMCommandsExp (EOp1 op1) = toSSMCommandsOp1 op1
@@ -46,7 +46,7 @@ toSSMCommandsOp2 PLTE = [S Sle]
 toSSMCommandsOp2 PNEq = [S Sne]
 toSSMCommandsOp2 PAnd = [S Sand]
 toSSMCommandsOp2 POr = [S Sor]
-// toSSMCommandsOp2 PCons = [Sadd] // TODO
+toSSMCommandsOp2 PCons = [S (Sbsr "__Cons"), S SldrRR]
 
 toSSMCommandsOp1 :: Op1 -> [SSMCommands]
 toSSMCommandsOp1 PNot = [S Snot]

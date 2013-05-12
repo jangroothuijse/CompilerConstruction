@@ -35,4 +35,8 @@ Start world
 # console = abort "Semantic analysis completed, no errors where found\n"
 # (succes, outputFile, world) = fopen "a.ssm" FWriteText world
 | not succes = abort "Fail to open output file"
-= writeSSM outputFile ((toSSMCode o toIR) prog)
+# outputFile = writeSSM outputFile ((toSSMCode o toIR) prog)
+#(succes, world) = fclose outputFile world
+| not succes = abort "Fail to close output file"
+=((toSSMCode o toIR) prog, toIR prog)
+

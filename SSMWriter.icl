@@ -12,10 +12,10 @@ instance toString SSMIns where
 	toString (Sajs i) = "ajs " +++ (toString i)
 	toString Sand = "and"
 	toString Sannote = "annote"
-	toString Sbra = "bra"
-	toString (Sbrf i) = "brf " +++ i
-	toString (Sbrt i) = "brt " +++ i
-	toString (Sbsr i) = "bsr " +++ i
+	toString (Sbra s) = "bra " +++ s
+	toString (Sbrf s) = "brf " +++ s
+	toString (Sbrt s) = "brt " +++ s
+	toString (Sbsr s) = "bsr " +++ s
 	toString Sdiv = "div"
 	toString Seq = "eq"	
 	toString Sge = "ge"
@@ -57,6 +57,6 @@ instance toString SSMIns where
 	toString Sswp = "swp"
 	toString Sswpr = "swpr"
 	toString Sswprr = "swprr"
-	toString Strap = "trap"
+	toString (Strap i) = "trap " +++ (toString i)
 	toString Sunlink = "unlink"
 	toString Sxor = "xor"

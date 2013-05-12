@@ -144,7 +144,7 @@ where
 
 // TODO: generate main
 toMain :: [Decl] -> IR
-toMain mainDecls = [{name = "main", blocks = [{name = "mainBody", commands = main}:blocks]}]
+toMain mainDecls = [{name = "main", blocks = [{name = "main", commands = main}:blocks]}]
 	where
 	(main, blocks) = toMain mainDecls
 	toMain :: [Decl] -> ([Command], [Block])
