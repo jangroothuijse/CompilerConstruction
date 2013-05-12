@@ -30,7 +30,7 @@ instance toString SSMIns where
 	toString Sldml = "ldml"
 	toString Sldms = "ldms"
 	toString (Sldr i) = "ldr " +++ (toString i)
-	toString SldrRR = "ldrRR"
+	toString SldrRR = "ldr RR"
 	toString Sldrr = "ldrr"
 	toString Slds = "lds"
 	toString Sldsa = "ldsa"
