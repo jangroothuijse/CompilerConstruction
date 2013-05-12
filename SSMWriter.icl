@@ -19,6 +19,7 @@ instance toString SSMIns where
 	toString Sdiv = "div"
 	toString Seq = "eq"	
 	toString Sge = "ge"
+	toString Sgt = "gt"
 	toString Shalt = "halt"
 	toString Sjsr = "jsr"
 	toString (Slda i) = "lda " +++ (toString i)
