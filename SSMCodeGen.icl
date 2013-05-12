@@ -54,9 +54,12 @@ toSSMCommandsOp1 :: Op1 -> [SSMCommands]
 toSSMCommandsOp1 PNot = [S Snot]
 toSSMCommandsOp1 PNeg = [S Sneg]
 
-defaultFuncions = flatten [print, createEBlock, Cons]
+defaultFuncions = flatten [print, createEBlock, cons, createTup, fst`, snd`]
 
-print = [SL "print" (Slds -1), S (Strap 0), S Sret]
-createEBlock = [SL "__createEBlock" (Sldc 0), S (Slda 0), S (Sldh 0), S SstrRR, S Sret]
-Cons = [SL "__Cons" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
+print			= [SL "print" (Slds -1), S (Strap 0), S Sret]
+createEBlock	= [SL "__createEBlock" (Sldc 0), S (Slda 0), S (Sldh 0), S SstrRR, S Sret]
+cons			= [SL "__Cons" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
+createTup		= [SL "__createTup" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
+fst`			= [SL "fst" (Slds -1), S (Sldmh 0 1), S SstrRR, S Sret]
+snd`			= [SL "snd" (Slds -1), S (Sldmh 0 2), S SstrRR, S (Sajs -1), S Sret]
 
