@@ -13,8 +13,8 @@ toIR prog = toIRDecl [] prog
 
 toIRDecl :: [Decl] [Decl] -> [IRFun]
 toIRDecl mainDecls [var=:(V _):xs]	= toIRDecl (mainDecls ++ [var]) xs // TODO: We probably have to put the main function at the end (and start with a jump instruction to it) to keep lazyness.
-toIRDecl mainDecls [mainDecl=:(F {funName = "main"}):xs] = toMain mainDecls
-toIRDecl mainDecls [F { funName = name, args = args, vars = vars, stmts = stmts }:xs]  = [{ IRFun | name = name, blocks = (toBlockStmts (mainDecls, args, vars) name stmts)}]  ++ toIRDecl mainDecls xs
+toIRDecl mainDecls [mainDecl=:(F {funName = "main"}):xs] = toMain (mainDecls ++ [mainDecl])
+toIRDecl mainDecls [F { funName = name, args = args, vars = vars, stmts = stmts }:xs]  = [{ IRFun | name = name, blocks = (toBlockStmts (mainDecls, args, vars) name stmts)}:(toIRDecl mainDecls xs)]
 toIRDecl mainDecls [] = abort "no main"
 
 toIRBlock :: Block -> IRFun
@@ -144,4 +144,18 @@ where
 
 // TODO: generate main
 toMain :: [Decl] -> IR
-toMain p = []
+toMain mainDecls = [{name = "main", blocks = [{name = "mainBody", commands = main}:blocks]}]
+	where
+	(main, blocks) = toMain mainDecls
+	toMain :: [Decl] -> ([Command], [Block])
+	toMain [V {exp=exp}:xs]
+	#exp = toIRExp (mainDecls, [], []) exp
+	#(main, blocks) = toMain xs
+	= ([exp:main], blocks)
+	toMain [F {funName = "main", args = args, vars = vars, stmts = stmts}:_]
+	#[{commands = main}:blocks] = toBlockStmts (mainDecls, args, vars) "main" stmts
+	=(main, blocks)
+
+
+
+
