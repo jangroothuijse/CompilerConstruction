@@ -21,7 +21,7 @@ toIRBlock :: Block -> IRFun
 toIRBlock block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
 
 toIRLocVarDecls :: IRInfo -> [Command]
-toIRLocVarDecls inf=:(mainDecls, args, vars=:[va:rs]) = [Link (length vars):flatten [toIRLocVarDecl inf var x \\ var <- vars & x<-[0..]]]
+toIRLocVarDecls inf=:(mainDecls, args, vars=:[va:rs]) = [Link (length vars):flatten [toIRLocVarDecl inf var x \\ var <- vars & x<-[1..]]]
 toIRLocVarDecls (mainDecls, args, []) = []
 
 toIRLocVarDecl :: IRInfo VarDecl Int -> [Command]
@@ -58,13 +58,13 @@ toBlockStmts :: IRInfo Id [Stmt] -> [Block]
 toBlockStmts inf=:(mainDecls, args, vars) name s
 #varblock = toIRLocVarDecls inf
 #(commands, blocks, _) = toBlockStmts s 0
-=[{name = name, commands = varblock ++ commands}:blocks]
+=[{name = name, commands = varblock ++ commands ++ [Unlink, CReturn]}:blocks] // TODO: add return only when required
 	where
 	toBlockStmts :: [Stmt] Int -> ([Command], [Block], Int)
 	toBlockStmts [x:xs] i
 	#(commands, blocks, i) = toBlockStmt x i
 	#(commands`, blocks`, i) = toBlockStmts xs i
-	=(commands ++ commands`, blocks ++ blocks`, i) // TODO: add return after void function
+	=(commands ++ commands`, blocks ++ blocks`, i)
 	toBlockStmts [] i = ([], [], i)
 	toBlockStmt :: Stmt Int -> ([Command], [Block], Int)
 	toBlockStmt (Block stmt) i = toBlockStmts stmt i
@@ -96,7 +96,7 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	toBlockStmt (SFC funCall) i
 	#(id, i) = getId name i
 	#exp = toIRExps inf funCall.callArgs
-	=(exp ++ [CFCall funCall.callName],[], i)
+	=(exp ++ [CFCall funCall.callName] ++ [Drop (length funCall.callArgs)],[], i)
 	toBlockStmt Return i
 	|(length vars)==0 = ([CReturn], [], i)
 	=([Unlink, CReturn], [], i)
