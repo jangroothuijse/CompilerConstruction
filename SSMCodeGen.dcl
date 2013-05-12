@@ -8,7 +8,7 @@ toSSMCode :: IR -> SSMCode
 :: SSMCommands = SL Id SSMIns | S SSMIns
 :: SSMIns = Sadd | Sajs Int | Sand | Sannote | Sbra | Sbrf Id | Sbrt Id | Sbsr Id | Sdiv
 		| Seq | Sge | Sgt | Shalt | Sjsr | Slda | Sldaa | Sldc Int | Sldl Int | Sldla
-		| Sldma | Sldml | Sldms | Sldr Int | SldrRR | Sldrr | Slds | Sldsa | Sle | Slink
+		| Sldma | Sldml | Sldms | Sldr Int | SldrRR | Sldrr | Slds | Sldsa | Sle | Slink Int
 		| Slt | Smod | Smul | Sne | Sneg | Snop | Snot | Sor | Sret | Ssta
-		| Sstl | Sstma | Sstml | Sstms | Sstr | Ssts | Ssub | Sswp | Sswpr
+		| Sstl | Sstma | Sstml | Sstms | Sstr Int | SstrRR | Ssts | Ssub | Sswp | Sswpr
 		| Sswprr | Strap | Sunlink | Sxor

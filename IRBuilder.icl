@@ -12,7 +12,7 @@ toIR :: Prog -> IR
 toIR prog = toIRDecl [] prog
 
 toIRDecl :: [Decl] [Decl] -> [IRFun]
-toIRDecl mainDecls [var=:(V _):xs]	= toIRDecl (mainDecls ++ [var]) xs
+toIRDecl mainDecls [var=:(V _):xs]	= toIRDecl (mainDecls ++ [var]) xs // TODO: We probably have to put the main function at the end (and start with a jump instruction to it) to keep lazyness.
 toIRDecl mainDecls [mainDecl=:(F {funName = "main"}):xs] = toMain mainDecls
 toIRDecl mainDecls [F { funName = name, args = args, vars = vars, stmts = stmts }:xs]  = [{ IRFun | name = name, blocks = (toBlockStmts (mainDecls, args, vars) name stmts)}]  ++ toIRDecl mainDecls xs
 
@@ -47,8 +47,8 @@ toExpExp2 inf EFalse = [Put 0]
 toExpExp2 inf ETrue = [Put 1]
 toExpExp2 inf (EBrace exp) = toExpExp inf exp
 toExpExp2 inf (EFC f) = toExpFCall inf f
-toExpExp2 inf EBlock = [EFCall "$$createEBlock"]
-toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCall "$$createTup"]
+toExpExp2 inf EBlock = [EFCall "__createEBlock"]
+toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCall "__createTup"]
 
 toExpFCall :: IRInfo FunCall -> [CExp]
 toExpFCall inf { callName = name, callArgs = exp } = (flatten (map (toExpExp inf) exp)) ++ [EFCall name]
@@ -65,34 +65,34 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#(commands`, blocks`, i) = toBlockStmts xs i
 	=(commands ++ commands`, blocks ++ blocks`, i) // TODO: add return after void function
 	toBlockStmt :: Stmt Int -> ([Command], [Block], Int)
-	toBlockStmt (Block stmt) i
-	#id = name +++ "$"  +++ (toString i)
-	#(commands, blocks, i) = toBlockStmts stmt (i+1)
-	=([Branch id], [{ name = id, commands = commands}:blocks], i)
+	toBlockStmt (Block stmt) i = toBlockStmts stmt i
 	toBlockStmt (If exp stmt) i
-	#id = name +++ "$"  +++ (toString i)
+	#(id, i) = getId name i
+	#(id`, i) = getId name i
 	#exp = toIRExp inf exp
-	#(commands, blocks, i) = toBlockStmts [stmt] (i+1)
-	=([exp, BranchIf id],[{ name = id, commands = commands}:blocks], i)
+	#(commands, blocks, i) = toBlockStmts [stmt] i
+	=([exp, BranchIf id, Label id`],[{ name = id, commands = commands ++ [Branch id`]}:blocks], i)
 	toBlockStmt (Ife exp stmt1 stmt2) i
-	#id = name +++ "$"  +++ (toString i)
+	#(id, i) = getId name i
+	#(id`, i) = getId name i
+	#(id``, i) = getId name i
 	#exp = toIRExp inf exp
-	#(commands, blocks, i) = toBlockStmts [stmt1] (i+1)
-	#id` = name +++ "$"  +++ (toString i)
-	#(commands`, blocks`, i) = toBlockStmts [stmt2] (i+1)
-	=([exp, BranchIfElse id id`],[{ name = id, commands = commands}:{ name = id`, commands = commands`}:blocks], i)
+	#(commands, blocks, i) = toBlockStmts [stmt1] i
+	#(commands`, blocks`, i) = toBlockStmts [stmt2] i
+	=([exp, BranchIfElse id id`, Label id``],[{ name = id, commands = commands ++ [Branch id``]}:{ name = id`, commands = commands` ++ [Branch id``]}:blocks], i)
 	toBlockStmt (While exp stmt) i
-	#id = name +++ "$"  +++ (toString i)
-	#exp = toExpExp inf exp
-	#(commands, blocks, i) = toBlockStmts [stmt] (i+1)
-	=([BranchWhile exp id],[{ name = id, commands = commands}:blocks], i)
+	#(id, i) = getId name i
+	#(id`, i) = getId name i
+	#exp = toIRExp inf exp
+	#(commands, blocks, i) = toBlockStmts [stmt] i
+	=([ Label id, exp, BranchIf id`],[{ name = id`, commands = commands ++ [Branch id]}:blocks], i)
 	toBlockStmt (Ass id exp) i
 	#exp = toIRExp inf exp
 	|isLocal args vars id
 		=([exp, CAssingl (getLocal args vars id (~(length args)))],[], i)
 	=([exp, CAssing id],[], i)
 	toBlockStmt (SFC funCall) i
-	#id = name +++ "$"  +++ (toString i)
+	#(id, i) = getId name i
 	#exp = toIRExps inf funCall.callArgs
 	=(exp ++ [CFCall funCall.callName],[], i)
 	toBlockStmt Return i
@@ -102,6 +102,9 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#exp = toIRExp inf exp
 	|(length vars)==0 = ([exp, CReturn], [], i)
 	=([Unlink, exp, CReturne], [], i)	
+
+getId :: String Int -> (String, Int)
+getId s i = ("_" +++ (toString i) +++ "_" +++ s, i+1)
 
 isLocal :: [FArg] [VarDecl] Id -> Bool
 isLocal [{FArg|argName = idx}:rg] decl id

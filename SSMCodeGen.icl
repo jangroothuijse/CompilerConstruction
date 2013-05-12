@@ -18,16 +18,11 @@ toSSMCommands (CAssingl i) = [S (Sldl i)]
 toSSMCommands (Branch name) = [S (Sbsr name)]
 toSSMCommands (BranchIf name) = [S (Sbrt name), S (Sajs -1)]
 toSSMCommands (BranchIfElse namet namef) = [S (Sbrt namet), S (Sbrf namef), S (Sajs -1)]
-toSSMCommands (BranchWhile exp name)
-#[S ex:exp] = toSSMCommands (CExp exp)
-=[SL (name +++ "$") ex:exp] ++ [S (Sbrt name), S (Sajs -1)]
-/*
-toSSMCommands (CFCall Id) = 
-toSSMCommands CReturn =
-toSSMCommands CReturne = 
-toSSMCommands (Link Int) = 
-toSSMCommands Unlink = 
-*/
+toSSMCommands (CFCall id) = [S (Sbsr id)]
+toSSMCommands CReturn = [S Sret]
+toSSMCommands CReturne = [S SstrRR, S Sret]
+toSSMCommands (Link i) = [S (Slink i)]
+toSSMCommands Unlink = [S Sunlink]
 
 toSSMCommandsExp :: CExp -> [SSMCommands] 
 //toSSMCommandsExp (Read Id) // Todo: Id to stack location

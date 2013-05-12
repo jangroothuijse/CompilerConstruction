@@ -35,7 +35,7 @@ instance toString SSMIns where
 	toString Slds = "lds"
 	toString Sldsa = "ldsa"
 	toString Sle = "le"
-	toString Slink = "link"
+	toString (Slink i) = "link " +++ (toString i)
 	toString Slt = "lt"
 	toString Smod = "mod"
 	toString Smul = "mul"
@@ -50,7 +50,8 @@ instance toString SSMIns where
 	toString Sstma = "stma"
 	toString Sstml = "stml"
 	toString Sstms = "stms"
-	toString Sstr = "str"
+	toString (Sstr i)=  "str " +++ (toString i)
+	toString SstrRR = "str RR"
 	toString Ssts = "sts"
 	toString Ssub = "sub"
 	toString Sswp = "swp"
