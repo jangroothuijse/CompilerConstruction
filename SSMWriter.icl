@@ -4,8 +4,8 @@ import StdEnv, SSMCodeGen
 
 instance writeSSM SSMCode where writeSSM f l = foldl (writeSSM) f l
 instance writeSSM SSMCommands where
-	writeSSM f (SL l ins) = f <<< (l +++ ":\t" +++ (toString ins) +++ ";")
-	writeSSM f (S ins) = f <<< ("\t\t" +++ (toString ins) +++ ";")
+	writeSSM f (SL l ins) = f <<< (l +++ ":\t" +++ (toString ins) +++ ";\n")
+	writeSSM f (S ins) = f <<< ("\t\t" +++ (toString ins) +++ ";\n")
 	
 instance toString SSMIns where
 	toString Sadd = "add"
