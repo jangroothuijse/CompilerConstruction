@@ -121,7 +121,7 @@ isGlobal :: [Decl] Id -> Bool
 isGlobal [V {VarDecl | name = name}:xs] id
 | id == name = True
 =isGlobal xs id
-isGlobal [] _ = False
+isGlobal _ _ = False
 
 getLocal :: [FArg] [VarDecl] Id -> Int
 getLocal a b c = getLocal a b c 0
