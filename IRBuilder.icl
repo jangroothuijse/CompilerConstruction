@@ -15,6 +15,7 @@ toIRDecl :: [Decl] [Decl] -> [IRFun]
 toIRDecl mainDecls [var=:(V _):xs]	= toIRDecl (mainDecls ++ [var]) xs // TODO: We probably have to put the main function at the end (and start with a jump instruction to it) to keep lazyness.
 toIRDecl mainDecls [mainDecl=:(F {funName = "main"}):xs] = toMain mainDecls
 toIRDecl mainDecls [F { funName = name, args = args, vars = vars, stmts = stmts }:xs]  = [{ IRFun | name = name, blocks = (toBlockStmts (mainDecls, args, vars) name stmts)}]  ++ toIRDecl mainDecls xs
+toIRDecl mainDecls [] = abort "no main"
 
 toIRBlock :: Block -> IRFun
 toIRBlock block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
@@ -64,6 +65,7 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#(commands, blocks, i) = toBlockStmt x i
 	#(commands`, blocks`, i) = toBlockStmts xs i
 	=(commands ++ commands`, blocks ++ blocks`, i) // TODO: add return after void function
+	toBlockStmts [] i = ([], [], i)
 	toBlockStmt :: Stmt Int -> ([Command], [Block], Int)
 	toBlockStmt (Block stmt) i = toBlockStmts stmt i
 	toBlockStmt (If exp stmt) i
