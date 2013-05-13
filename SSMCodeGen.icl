@@ -5,7 +5,7 @@ import StdEnv, IRBuilder
 Start = 0
 
 toSSMCode :: IR -> SSMCode
-toSSMCode ir = [S (Sldc 0), S (Ssth), S (Sbsr "main"), S SldrRR, S (Strap 0), S Shalt:flatten (map toSSMCodeFun ir)] ++ defaultFuncions
+toSSMCode ir = [S (Sldsa 1), S (Sstr 5), S (Sldc 0), S (Ssth), S (Sbsr "main"), S SldrRR, S (Strap 0), S Shalt:flatten (map toSSMCodeFun ir)] ++ defaultFuncions
 
 toSSMCodeFun { blocks = blocks} = flatten (map toSSMCodeBlock blocks)
 
@@ -13,7 +13,7 @@ toSSMCodeBlock { name = name, commands = command} = [(SL name Snop):flatten (map
 
 toSSMCommands :: Command -> [SSMCommands]
 toSSMCommands (CExp exp) = flatten (map toSSMCommandsExp exp)
-toSSMCommands (CAssing i) = [S (Ssta i)]
+toSSMCommands (CAssing i) = [S (Sldr 5), S(Ssta (i+1))]
 toSSMCommands (CAssingl i) = [S (Sstl i)]
 toSSMCommands (Branch name) = [S (Sbsr name)]
 toSSMCommands (BranchIf name) = [S (Sbrt name), S (Sajs -1)]
@@ -22,13 +22,14 @@ toSSMCommands (CFCall id) = [S (Sbsr id)]
 toSSMCommands CReturn = [S Sret]
 toSSMCommands CReturne = [S SstrRR, S Sret]
 toSSMCommands (Link i) = [S (Slink i)]
+toSSMCommands (Swap) = [S (Sswp)]
 toSSMCommands Unlink = [S Sunlink]
 toSSMCommands (Label s) = [SL s Snop]
-toSSMCommands (Drop i) = [S (Sajs i)]
+toSSMCommands (Drop i) = [S (Sajs (~i))]
 
 
 toSSMCommandsExp :: CExp -> [SSMCommands] 
-toSSMCommandsExp (Read i) = [S (Slda i)]
+toSSMCommandsExp (Read i) = [S (Sldr 5), S (Slda (i+1))]
 toSSMCommandsExp (Readl i) = [S (Sldl i)]
 toSSMCommandsExp (EOp2 op2) = toSSMCommandsOp2 op2
 toSSMCommandsExp (EOp1 op1) = toSSMCommandsOp1 op1
@@ -57,7 +58,7 @@ toSSMCommandsOp1 PNeg = [S Sneg]
 defaultFuncions = flatten [print, createEBlock, cons, createTup, fst`, snd`, hd`, tl`, isEmpty`]
 
 print			= [SL "print" (Slds -1), S (Strap 0), S Sret]
-createEBlock	= [SL "__createEBlock" (Sldc 0), S (Slda 0), S (Sldh 0), S SstrRR, S Sret]
+createEBlock	= [SL "__createEBlock" (Sldr 5), S (Slda 0), S (Sldh 0), S SstrRR, S Sret]
 cons			= [SL "__Cons" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
 createTup		= [SL "__createTup" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
 fst`			= [SL "fst" (Slds -1), S (Sldmh 0 1), S SstrRR, S Sret]

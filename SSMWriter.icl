@@ -36,7 +36,7 @@ instance toString SSMIns where
 	toString SldrRR = "ldr RR"
 	toString Sldrr = "ldrr"
 	toString (Slds i) = "lds " +++ (toString i)
-	toString Sldsa = "ldsa"
+	toString (Sldsa i) = "ldsa " +++ (toString i)
 	toString Sle = "le"
 	toString (Slink i) = "link " +++ (toString i)
 	toString Slt = "lt"

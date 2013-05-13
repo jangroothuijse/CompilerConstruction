@@ -22,6 +22,7 @@ Mark local and global variable references.
 	| Link Int | Unlink // (Un)reserver room on the stack for a number of local vars.
 	| Label Id // Used to return from if and whil functions.
 	| Drop Int // Used to drop parameters after usage.
+	| Swap // Swap topmost values on stack.
 :: CExp = Read Int	// Read a global var and put it on the stack.
 	| Readl Int // Read a local var or param. (First param is -n, second -n+1, ... last param is -1, first local var is 1, second 2...) 0 is the return adress on the stack.
 	| EOp2 Op2 | EOp1 Op1	// Call operator n. (+, -, *, / etc. All build in operators).
