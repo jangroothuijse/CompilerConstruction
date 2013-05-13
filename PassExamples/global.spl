@@ -1,0 +1,10 @@
+Int var = 500;
+
+Void main()
+{
+	print(var);
+	var = var + 20;
+	print(var);
+	print(var * 3);
+	return;
+}

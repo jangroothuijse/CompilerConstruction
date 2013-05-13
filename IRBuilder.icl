@@ -22,7 +22,7 @@ toIRBlock block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
 
 toIRLocVarDecls :: IRInfo -> [Command]
 toIRLocVarDecls inf=:(mainDecls, args, vars=:[va:rs]) = [Link (length vars):flatten [toIRLocVarDecl inf var x \\ var <- vars & x<-[1..]]]
-toIRLocVarDecls (mainDecls, args, []) = []
+toIRLocVarDecls (mainDecls, args, []) = [Link 0]
 
 toIRLocVarDecl :: IRInfo VarDecl Int -> [Command]
 toIRLocVarDecl inf {exp = exp} i = [toIRExp inf exp, CAssingl i]
@@ -98,7 +98,6 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#exp = toIRExps inf funCall.callArgs
 	=(exp ++ [CFCall funCall.callName] ++ [Drop (length funCall.callArgs)],[], i)
 	toBlockStmt Return i
-	|(length vars)==0 = ([CReturn], [], i)
 	=([Unlink, CReturn], [], i)
 	toBlockStmt (Returne exp) i
 	#exp = toIRExp inf exp
@@ -151,7 +150,7 @@ toMain mainDecls = [{name = "main", blocks = [{name = "main", commands = main}:b
 	toMain [V {exp=exp}:xs]
 	#exp = toIRExp (mainDecls, [], []) exp
 	#(main, blocks) = toMain xs
-	= ([exp:main], blocks)
+	= ([exp:Swap:main], blocks)
 	toMain [F {funName = "main", args = args, vars = vars, stmts = stmts}:_]
 	#[{commands = main}:blocks] = toBlockStmts (mainDecls, args, vars) "main" stmts
 	=(main, blocks)
