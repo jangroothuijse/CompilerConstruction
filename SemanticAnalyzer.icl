@@ -63,7 +63,8 @@ returnError ue=:{ e = e, console = console } s f = { UEnv | ue & console = conso
 	(toString f.fline) +++ " column " +++ (toString f.fcolumn) +++ "\n"), e = e, error = True }
 
 returnCheck :: *UEnv FunDecl -> *UEnv
-returnCheck e f = let (g, b) = foldl (rtCheck) (e, False) f.stmts in if (b || (isVoid f.retType)) g (returnError g ("Not all branches have a return " +++
+returnCheck e f = let (g, b) = foldl (rtCheck) (e, False) f.stmts in if (b || (isVoid f.retType)) g 
+	(returnError g ("Not all branches have a return, or void function with expression in return statement " +++
 	(toString f.retType) +++ " " +++ (toString (isVoid f.retType))) f)
 where
 	rtCheck :: !(!*UEnv, !Bool) Stmt -> (*UEnv, Bool)
@@ -73,5 +74,5 @@ where
 	rtCheck t (Ife _ s1 s2) 	= let (e, b1) = (rtCheck t s1) in (let (e2, b2) = (rtCheck (e, False) s2) in (e2, b1 && b2))
 	rtCheck t (While _ stmt) 	= (fst (rtCheck t stmt), False) // See if..
 	rtCheck (e, _) Return 		= (e, True)
-	rtCheck (e, _) (Returne _) 	= (e, True)
+	rtCheck (e, _) (Returne _) 	= (e, not (isVoid f.retType))
 	rtCheck t _ 				= t // Assignment, functioncalls
