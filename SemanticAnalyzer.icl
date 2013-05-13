@@ -1,28 +1,26 @@
 implementation module SemanticAnalyzer
 
-import StdEnv, Parser, TypeChecker, PrettyPrinter
+import StdEnv, Parser, TypeChecker, PrettyPrinter, GenEq, AlphaNumIndexed
 
-check :: Prog *UEnv -> (Prog, *UEnv)
-check [] ue = ([], ue)
-check [x:xs] ue = ([x: nextDecl], nextConsole)
+check :: *UEnv Prog -> (*UEnv, Prog)
+check ue [] = (ue, [])
+check ue [x:xs] = (nextConsole, [x: nextDecl])
 where 
 	ue2 = analyze ue x
-	(nextDecl, nextConsole) = check xs ue2
+	(nextConsole, nextDecl) = check ue2 xs
 
 errorsOnly :: *UEnv a -> *UEnv | analyze a
-errorsOnly { console = console, e = e, error = error1 } s
-# e2 =: { error = error } = (analyze { console = console, e = e, error = error1 } s)
-= { UEnv | console = e2.UEnv.console, error = error, e = e }
+errorsOnly e1 =: { console = console, e = e, error = error1, local = local, global = global } s
+# e2 =: { error = error } = (analyze { e1 & console = console, e = e, error = error1, local = local, global = global } s)
+= { e1 & console = e2.UEnv.console, error = error, e = e, local = e2.local, global = e2.global }
 
-idExists :: !Id *UEnv -> *UEnv
-idExists i { console = console, e = e, error = error } = { UEnv | console = f e.Env.ids console, e = e, error = error }
-where 
-	f :: [(Id, Type)] *File -> *File
-	f [] c		= c <<< (i +++ " undefined")
-	f [x:xs] c	= if (fst x == i) c (f xs c)
-
-typeFor :: Env !Id -> Type
-typeFor e i = let f = (\l.if (isEmpty l) TEmpty (let x = (hd l) in (if (fst x == i) (snd x) (f (tl l))))) in f e.ids
+idExists :: *UEnv !Id -> *UEnv
+idExists e=:{ console = console, global = global, local = local } i
+	# (result, local) = local getIndexed (i, TEmpty)
+	| not (result === TEmpty) = { e & local = local }
+	# (result, global) = global getIndexed (i, TEmpty)
+	| not (result === TEmpty) = { e & local = local, global = global }
+	= { e & local = local, global = global, error = True, console = console <<< (i +++ " undefined") }
 
 fa :== foldl (analyze)
 
@@ -30,32 +28,33 @@ instance analyze Prog where analyze e p = fa e p
 instance analyze Decl where	
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f	
-instance analyze VarDecl where analyze ue=:{ e = e } v = typeCheck (analyze { ue & e = { e & ids = [(v.name, v.type) : e.ids] } } v.exp) v.exp (toFixed v.type)	
-instance analyze FunDecl where
-	analyze ue=:{ e = e } f = { ue2 & e = { e & ids = ids2 } }
-	where 
-		ue2 = (fa (fa (returnCheck { ue & e = { e & ids = fixedArgIds ++ ids2, functionId = Just f.funName } } f) f.vars) f.stmts)
-		fixedArgIds  = [(a.argName, toFixed a.argType) \\ a <- f.args]
-		ids2 = [(f.funName, TFun (f.retType) [a.argType \\ a <- f.args]):e.ids]	
+instance analyze VarDecl where analyze ue=:{ global = g } v = typeCheck (analyze { ue & global = g addIndexed (v.name, v.type), local = newTree 63 } v.exp) v.exp (toFixed v.type)	
+instance analyze FunDecl where // ids = local? local should be list? Questions?
+	analyze ue=:{ e = e, global = global } f = 
+		(fa (foldl (localVar) (returnCheck { ue & e = { e & functionId = Just f.funName }, local = local, global = updatedGlobal } f) f.vars) f.stmts) where
+		local  = foldl (addIndexed) (newTree 63) [(a.argName, toFixed a.argType) \\ a <- f.args]
+		updatedGlobal = global addIndexed (f.funName, TFun (f.retType) [a.argType \\ a <- f.args])
+		localVar ue=: { local = local } v = { ue & local = local addIndexed (v.name, toFixed v.type) }
 instance analyze Stmt where
 	analyze e (Block l) = fa e l
 	analyze e (If exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
 	analyze e (Ife exp st1 st2) = typeCheck (errorsOnly (errorsOnly (errorsOnly e st2) st1) exp) exp TBool
 	analyze e (While exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
-	analyze ue=:{ e = e } (Ass i exp) = typeCheck (idExists i ue) exp (typeFor e i)
+	analyze ue (Ass i exp) = let (t, ue2) = typeFor ue i in typeCheck (idExists ue2 i) exp t
 	analyze e (SFC f) = typeCheck (analyze e f) (EFC f) TEmpty
-	analyze ue=:{ e = e } Return = returnHelp (typeCheck ue (returnType (typeFor e (fromJust e.functionId))) TEmpty) 
-	analyze ue=:{ e = e } (Returne exp) = returnHelp (typeCheck (analyze ue exp) exp (toFixed (returnType (typeFor e ( fromJust e.functionId)))))
+	analyze ue=:{e=e} Return = let (t, ue2) = typeFor ue (fromJust e.functionId) in returnHelp (typeCheck ue2 (returnType t) TEmpty) 
+	analyze ue=:{e=e} (Returne exp) = returnHelp (typeCheck (analyze ue2 exp) exp (toFixed (returnType t)))
+	where (t, ue2) = typeFor ue ( fromJust e.functionId )
 instance analyze Exp where analyze ue=:{ e = e } exp = analyze { ue & e = { e & envLine = exp.eline, envColumn = exp.ecolumn } } exp.ex
 instance analyze Exp2 where 
-	analyze e (I i) = idExists i e
+	analyze e (I i) = idExists e i
 	analyze e (Op2 e1 op e2) = errorsOnly (errorsOnly e e1) e1
 	analyze e (Op1 op exp) = errorsOnly e exp
 	analyze e (EBrace exp) = analyze e exp
 	analyze e (EFC f) = analyze e f // <- typeChecked as part of a statement
 	analyze e (Tup e1 e2) = errorsOnly (errorsOnly e e1) e2
 	analyze e _ = e	// Bool, Int, Block <- typeCheck as part of statement (assignment or function call)	
-instance analyze FunCall where analyze e f = (foldl (errorsOnly) (idExists f.callName e) f.callArgs)
+instance analyze FunCall where analyze e f = (foldl (errorsOnly) (idExists e f.callName) f.callArgs)
 
 returnHelp ue=:{ e = e, console = console }
 | isJust e.functionId = ue
@@ -79,3 +78,5 @@ where
 	rtCheck (e, _) Return 		= (e, True)
 	rtCheck (e, _) (Returne _) 	= (e, True)
 	rtCheck t _ 				= t // Assignment, functioncalls
+	
+derive gEq Type, RetType

@@ -2,8 +2,7 @@ implementation module TypeChecker
 
 // Function in this file do not add to ids to the environment, analyzeType is the only function to do any env modification, and it only makes errors.
 
-import SPLDefaultEnv
-import PrettyPrinter // Only toString Op2, Exp2 and Type is needed...
+import StdEnv, SPLDefaultEnv, AlphaNumIndexed, PrettyPrinter
 
 isVoid :: !RetType -> Bool
 isVoid TVoid = True
@@ -11,6 +10,19 @@ isVoid (RT _) = False
 
 nonVoid :: !RetType -> Type
 nonVoid (RT t) = t
+
+Start = foldl (+++) "" (map (toNumbers) ["id0", "x", "id1000", "1023", "aB", "zZ", "_a"])
+
+toNumbers :: String -> String
+toNumbers s = foldl (+++) "\n" [ (toString o toInt) c \\ c <-: s ]
+
+typeFor :: *UEnv !Id -> (Type, *UEnv)
+typeFor e=:{ local = local, global = global } i
+	# (result, local) = local getIndexed (i, TEmpty)
+	| not (result === TEmpty) = (result, { e & local = local })
+	# (result, global) = global getIndexed (i, TEmpty)
+	| result === TEmpty = abort ("Cannot find " +++ i)
+	= (result, { e & local = local, global = global })
 
 returnTypeCheck :: *UEnv RetType RetType -> *UEnv
 returnTypeCheck e t1 t2 = if (not (isVoid t2 || isVoid t2)) (typeCheck e (nonVoid t1) (nonVoid t2)) (if (isVoid t1 && isVoid t2) e (typingError e "Unexpected void"))
@@ -81,11 +93,18 @@ instance typeCheck Type where
 	typeCheck e a b = (typingError e ((toString a) +++ " does not match " +++ (toString b)))
 instance typeCheck Exp where typeCheck ue=:{ e = e } exp t = typeCheck { ue & e = { e & envLine = exp.eline, envColumn = exp.ecolumn } } exp.ex t
 instance typeCheck Exp2 where
-	typeCheck ue =: { e = e } (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) (typingError ue (i +++ "undefined")) (typeCheck ue vt type))
-	typeCheck e (Op2 e1 op e2) type = typeCheck e (EFC { callName = (toString op), callArgs = [e1, e2] }) type
-	typeCheck e (Op1 op1 e1) type = typeCheck e (EFC { callName = toId op1, callArgs = [e1] }) type where 
-		toId PNot = "!"
-		toId PNeg = "-u"
+	typeCheck ue (I i) type
+		# (vt, ue) = typeFor ue i
+		| isTEmpty vt = typingError ue (i +++ "undefined")
+		= typeCheck ue vt type
+	typeCheck e=:{ e = env } (Op2 e1 op e2) type
+	# (env, opType) = let type = e.o2 op in freeIds (env, type) (allIds type) // refresh type vars
+	# e = typeCheck { e & e = env } (returnType opType) type
+	= typeCheck (typeCheck e e1 (hd (argTypes opType))) e2 ((hd o tl o argTypes) opType)
+	typeCheck e=:{e=env} (Op1 op1 e1) type
+	# (env, opType) = let type = e.o1 op1 in freeIds (env, type) (allIds type) // refresh type vars
+	# e = typeCheck { e & e = env } (returnType opType) type
+	= typeCheck e e1 (hd (argTypes opType))	
 	typeCheck e (EInt _) type = typeCheck e TInt type
 	typeCheck e (EBrace exp) type = typeCheck e exp type
 	typeCheck e EBlock type = typeCheck e (TList (TId "t")) type
@@ -95,14 +114,16 @@ instance typeCheck Exp2 where
 	typeCheck e EFalse type = typeCheck e TBool type
 	typeCheck e ETrue type = typeCheck e TBool type
 	typeCheck ue =: { e = e } (EFC f) type
-	| isTEmpty funType = (typingError ue (f.callName +++ " undefined"))
-	| length f.callArgs <> length aTypes = (typingError ue (f.callName +++ " used with wrong arity"))
-	= { ue2 & e = { ue2.e & subs = e.subs } } where
-		ue2 = foldl tupleCheck e2 [(a, b) \\ a <- f.callArgs & b <- aTypes]
-		aTypes = argTypes freshFunType
-		funType = (typeFor e f.callName)
-		(env1, freshFunType) = foldl g (e, funType) (allIds funType)
-		e1 = { ue & e = env1 }
-		e2 = typeCheck e1 (returnType freshFunType) type  // e2 may have new restrictions in typeVars
-		g (ue3, t) i = let (ue4, fresh) = (freshId ue3) in (ue4, replaceId i (TId fresh) t)
+	# (funType, uea) = (typeFor ue f.callName)
+	# (env1, freshFunType) = freeIds (e, funType) (allIds funType) // TODO use locals?
+	# aTypes = argTypes freshFunType
+	| isTEmpty funType = (typingError uea (f.callName +++ " undefined"))
+	| length f.callArgs <> length aTypes = (typingError uea (f.callName +++ " used with wrong arity"))
+	# e1 = { uea & e = env1 }
+	# e2 = typeCheck e1 (returnType freshFunType) type  // e2 may have new restrictions in typeVars
+	# ue2 = foldl tupleCheck e2 [(a, b) \\ a <- f.callArgs & b <- aTypes]
+	= { ue2 & e = { ue2.e & subs = e.subs } }	
 	typeCheck e p t = typingError e ((toString p) +++ " does not match " +++ (toString t))
+
+freeIds = foldl (g) where g (ue3, t) i = let (ue4, fresh) = (freshId ue3) in (ue4, replaceId i (TId fresh) t)
+derive gEq Type, RetType

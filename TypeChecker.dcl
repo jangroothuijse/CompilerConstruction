@@ -1,6 +1,9 @@
 definition module TypeChecker
 
-import SemanticAnalyzer
+import DigitalTree, Parser, StdMaybe
+
+:: Env = { subs :: (Type -> Type), functionId :: Maybe Id, freshId :: Int, envLine :: Int, envColumn :: Int }
+:: UEnv = { console :: !.File, e :: Env, error :: Bool, global :: .DigitalTree Type, local :: .DigitalTree Type, o1 :: Op1 -> Type, o2 :: Op2 -> Type  }
 
 class typeCheck a :: !*UEnv !a !Type -> *UEnv
 instance typeCheck Type
@@ -19,3 +22,5 @@ instance allIds RetType
 
 toFixed :: !a -> a | replaceId, allIds a
 returnType :: !Type -> Type
+
+typeFor :: *UEnv !Id -> (Type, *UEnv)

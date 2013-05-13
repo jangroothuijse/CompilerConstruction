@@ -1,12 +1,8 @@
 definition module SemanticAnalyzer
 
-import StdMaybe, Parser
+import StdMaybe, TypeChecker, Parser
 
-:: Env = { ids :: [(Id, Type)], subs :: (Type -> Type), functionId :: Maybe Id, freshId :: Int, envLine :: Int, envColumn :: Int }
-:: UEnv = { console :: !.File, e :: Env, error :: Bool }
-
-check :: Prog *UEnv -> (Prog, *UEnv)
+check :: *UEnv Prog -> (*UEnv, Prog)
 
 class analyze a :: *UEnv a -> *UEnv
 instance analyze Prog
-typeFor :: Env !Id -> Type
