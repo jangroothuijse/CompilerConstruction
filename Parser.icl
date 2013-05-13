@@ -63,7 +63,7 @@ parseType [{token = KBool}:xs] = { PR | result = TBool, tokens = xs }
 parseType [{token = KInt}:xs] = { PR | result = TInt, tokens = xs }
 parseType [{token = (Identifier i)}:xs] = { PR | result = (TId i), tokens = xs }
 parseType [{token = SBOpen}:xs] = let i = parseType xs in { PR | result = (TList i.PR.result), tokens = (parseSymbol SBClose i.PR.tokens).PR.tokens }
-parseType [{token = POpen}:xs] = let t = ((parseType) ~># ((parseSymbol Comma) ~>- parseType)) xs in { PR | result = TTup t.PR.result, tokens = (parseSymbol SBClose t.PR.tokens).PR.tokens }
+parseType [{token = POpen}:xs] = let t = ((parseType) ~># ((parseSymbol Comma) ~>- parseType)) xs in { PR | result = TTup t.PR.result, tokens = (parseSymbol PClose t.PR.tokens).PR.tokens }
 parseType t = parseError t " Failed to parse type"
 
 propNothing :: (Maybe a) b -> Maybe b

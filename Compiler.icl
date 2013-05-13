@@ -1,6 +1,15 @@
 module Compiler
 
-import StdEnv, ArgEnv, Tokenizer, Parser, PrettyPrinter, SemanticAnalyzer, SPLDefaultEnv
+import StdEnv
+import ArgEnv
+import Tokenizer
+import Parser
+import PrettyPrinter
+import SemanticAnalyzer
+import SPLDefaultEnv
+import IRBuilder
+import SSMCodeGen
+import SSMWriter
 
 toLines file
 # (line, file) = freadline file
@@ -15,9 +24,17 @@ Start world
 #   (succes, file, world)   = fopen filename FReadText world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # console = console <<< ("Compiling " +++ filename +++ "\n")
-|	size args > 2 && args.[2] == "-print" = prettyPrint console ((parse o tokenize o toLines) file)
+# prog = (parse o tokenize o toLines) file
+|	size args > 2 && args.[2] == "-print"
+	= prettyPrint console prog
 # defaultEnv = splDefaultEnv console
-# { console = console, error = error } = analyze defaultEnv ((parse o tokenize o toLines) file)
-| error = console <<< "Semantic analyzes found errors, program rejected\n"
-= console <<< "Semantic analysis completed, no errors where found\n"
+# { console = console, error = error } = analyze defaultEnv prog
+| error = abort "Semantic analyzes found errors, program rejected\n"
+# console = abort "Semantic analysis completed, no errors where found\n"
+# (succes, outputFile, world) = fopen "a.ssm" FWriteText world
+| not succes = abort "Fail to open output file"
+# outputFile = writeSSM outputFile ((toSSMCode o toIR) prog)
+#(succes, world) = fclose outputFile world
+| not succes = abort "Fail to close output file"
+= console //((toSSMCode o toIR) prog, toIR prog)
 
