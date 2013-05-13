@@ -14,7 +14,7 @@ idExists :: !Id *UEnv -> *UEnv
 idExists i { console = console, e = e, error = error } = { UEnv | console = f e.Env.ids console, e = e, error = error }
 where 
 	f :: [(Id, Type)] *File -> *File
-	f [] c		= c <<< (i +++ " undefined")
+	f [] c		= c <<< (i +++ " undefined\n")
 	f [x:xs] c	= if (fst x == i) c (f xs c)
 
 typeFor :: Env !Id -> Type

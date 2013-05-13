@@ -81,7 +81,7 @@ instance typeCheck Type where
 	typeCheck e a b = (typingError e ((toString a) +++ " does not match " +++ (toString b)))
 instance typeCheck Exp where typeCheck ue=:{ e = e } exp t = typeCheck { ue & e = { e & envLine = exp.eline, envColumn = exp.ecolumn } } exp.ex t
 instance typeCheck Exp2 where
-	typeCheck ue =: { e = e } (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) (typingError ue (i +++ "undefined")) (typeCheck ue vt type))
+	typeCheck ue =: { e = e } (I i) type = let vt = (typeFor e i) in (if (isTEmpty vt) (typingError ue (i +++ " undefined")) (typeCheck ue vt type))
 	typeCheck e (Op2 e1 op e2) type = typeCheck e (EFC { callName = (toString op), callArgs = [e1, e2] }) type
 	typeCheck e (Op1 op1 e1) type = typeCheck e (EFC { callName = toId op1, callArgs = [e1] }) type where 
 		toId PNot = "!"
