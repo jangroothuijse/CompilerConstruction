@@ -1,3 +1,6 @@
-Int n = 5;
+Bool n = True;
+[Int] l = 1 : 2 : 3 : 4 : [];
+
+Int opi = 27 / 9 / 3;
 Bool op = 1 + n/2 - n % 2 < n;
-Bool op2 = ((1 + n)/2) - n % 2 < n;
+Bool op2 = 1 + n/2 - n % 2 < n;
