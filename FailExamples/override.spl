@@ -1,0 +1,7 @@
+Void print(a msg) {
+    print(msg);
+}
+
+Void main () {
+    print(1);
+}
