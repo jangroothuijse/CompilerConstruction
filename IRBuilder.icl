@@ -123,13 +123,13 @@ isGlobal [V {VarDecl | name = name}:xs] id
 isGlobal _ _ = False
 
 getLocal :: [FArg] [VarDecl] Id -> Int
-getLocal a b c = getLocal a b c 0
+getLocal a b c = getLocal a b c -2
 where
 	getLocal [{FArg|argName = idx}:rg] decl id i
 	|idx==id	= i
 	=getLocal rg decl id (i + 1)
 	getLocal [] [{VarDecl|name = idx}:cl] id i
-	|idx==id = (i + 1)
+	|idx==id = (i + 2)
 	=getLocal [] cl id (i + 1)
 	getLocal [] _ _ _ = abort "getLocal used incorrect" // Shouldn't happen
 
