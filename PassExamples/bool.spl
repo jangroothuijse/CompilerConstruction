@@ -6,3 +6,7 @@ Bool implies(Bool a, Bool b) {
 	if (!a) return True;
 	else return b;
 }
+
+Void main() {
+	return;
+}

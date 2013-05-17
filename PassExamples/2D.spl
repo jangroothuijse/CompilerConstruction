@@ -10,3 +10,7 @@
 (Int, Int) scale((Int, Int) p, Int scalar) {
 	return (fst(p) * scalar, snd(p) * scalar);
 }
+
+Void main() {
+	scale((0,1), 2);
+}

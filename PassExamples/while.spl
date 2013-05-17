@@ -8,6 +8,6 @@ Void keepGoingR (Int n) {
 	return keepGoingR (n + 1);
 }
 
-VOid main() {
+Void main() {
 	return;
 	}
