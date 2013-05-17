@@ -101,7 +101,7 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	=([CReturn], [], i)
 	toBlockStmt (Returne exp) i
 	#exp = toIRExp inf exp
-	|(length vars)==0 = ([exp, CReturn], [], i)
+	|(length vars)==0 = ([exp, CReturne], [], i)
 	=([exp, CReturne], [], i)	
 
 getId :: String Int -> (String, Int)

@@ -26,7 +26,8 @@ Start world
 # console = console <<< ("Compiling " +++ filename +++ "\n")
 # prog = (parse o tokenize o toLines) file
 |	size args > 2 && args.[2] == "-print"
-	= prettyPrint console prog
+	#console = prettyPrint console prog
+	= abort "done"
 # defaultEnv = splDefaultEnv console
 # { console = console, error = error } = analyze defaultEnv prog
 | error = abort "Semantic analyzes found errors, program rejected\n"
@@ -36,5 +37,5 @@ Start world
 # outputFile = writeSSM outputFile ((toSSMCode o toIR) prog)
 #(succes, world) = fclose outputFile world
 | not succes = abort "Fail to close output file"
-= console //((toSSMCode o toIR) prog, toIR prog)
+= ((toSSMCode o toIR) prog, "\n", toIR prog, "\n", prog)
 
