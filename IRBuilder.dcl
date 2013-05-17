@@ -19,8 +19,8 @@ Mark local and global variable references.
 :: Command = CExp [CExp] | CAssing Int | CAssingl Int  // CAssing global and CAssingl local, same as read and readl.
 	| Branch Id | BranchIf Id | BranchIfElse Id Id
 	| CFCall Id | CReturn | CReturne
-	| Link Int // (Un)reserver room on the stack for a number of local vars.
-	| Label Id // Used to return from if and whil functions.
+	| Link Int // Reserver room on the stack for a number of local vars.
+	| Label Id // Used to return from if and while functions.
 	| Drop Int // Used to drop parameters after usage.
 	| Swap // Swap topmost values on stack.
 :: CExp = Read Int	// Read a global var and put it on the stack.
