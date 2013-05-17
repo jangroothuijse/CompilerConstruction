@@ -29,11 +29,14 @@ instance analyze Decl where
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f	
 instance analyze VarDecl where analyze ue=:{ global = g } v = typeCheck (analyze { ue & global = g addIndexed (v.name, v.type), local = newTree 63 } v.exp) v.exp (toFixed v.type)	
-instance analyze FunDecl where // ids = local? local should be list? Questions?
-	analyze ue=:{ e = e, global = global } f = 
-		(fa (foldl (localVar) (returnCheck { ue & e = { e & functionId = Just f.funName }, local = local, global = updatedGlobal } f) f.vars) f.stmts) where
-		local  = foldl (addIndexed) (newTree 63) [(a.argName, toFixed a.argType) \\ a <- f.args]
-		updatedGlobal = global addIndexed (f.funName, TFun (f.retType) [a.argType \\ a <- f.args])
+instance analyze FunDecl where
+	analyze ue=:{ e = e, global = global, console = console, error = error } f = 
+		(fa (foldl (localVar) (returnCheck { ue & e = { e & functionId = Just f.funName }, local = local, global = updatedGlobal, console = console2, error = error || not (old === TEmpty) } f) f.vars) f.stmts) where
+		local  = foldl (addIndexed) (newTree 63) [(a.argName, toFixed a.argType) \\ a <- f.args]				
+		(old, uGlobal) = global getIndexed (f.funName, TEmpty)
+		console2 = console <<< (if (old === TEmpty) "" 
+			("ERROR " +++ f.funName +++ " multiply defined on line " +++ (toString f.fline) +++ " column " +++ (toString f.fcolumn) +++ "\n"))
+		updatedGlobal = uGlobal addIndexed (f.funName, TFun (f.retType) [a.argType \\ a <- f.args])
 		localVar ue=: { local = local } v = { ue & local = local addIndexed (v.name, toFixed v.type) }
 instance analyze Stmt where
 	analyze e (Block l) = fa e l
