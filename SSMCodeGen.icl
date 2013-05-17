@@ -19,7 +19,7 @@ toSSMCommands :: Command -> [SSMCommands]
 toSSMCommands (CExp exp) = flatten (map toSSMCommandsExp exp)
 toSSMCommands (CAssing i) = [S (Sldr 5), S(Ssta (i+1))]
 toSSMCommands (CAssingl i) = [S (Sstl i)]
-toSSMCommands (Branch name) = [S (Sbsr name)]
+toSSMCommands (Branch name) = [S (Sbra name)]
 toSSMCommands (BranchIf name) = [S (Sbrt name)]
 toSSMCommands (BranchIfElse namet namef) = [S (Slds 0), S (Sbrt namet), S (Sbrf namef)]
 toSSMCommands (CFCall id) = [S (Sbsr id)]
