@@ -1,0 +1,5 @@
+Void main() {
+	[Int] x = 5:[];
+	print(hd([]));
+	print(tl([]));
+}
