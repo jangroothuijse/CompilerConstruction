@@ -58,7 +58,7 @@ toBlockStmts :: IRInfo Id [Stmt] -> [Block]
 toBlockStmts inf=:(mainDecls, args, vars) name s
 #varblock = toIRLocVarDecls inf
 #(commands, blocks, _) = toBlockStmts s 0
-=[{name = name, commands = varblock ++ commands ++ [Unlink, CReturn]}:blocks] // TODO: add return only when required
+=[{name = name, commands = varblock ++ commands ++ [CReturn]}:blocks] // TODO: add return only when required
 	where
 	toBlockStmts :: [Stmt] Int -> ([Command], [Block], Int)
 	toBlockStmts [x:xs] i
@@ -98,11 +98,11 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#exp = toIRExps inf funCall.callArgs
 	=(exp ++ [CFCall funCall.callName] ++ [Drop (length funCall.callArgs)],[], i)
 	toBlockStmt Return i
-	=([Unlink, CReturn], [], i)
+	=([CReturn], [], i)
 	toBlockStmt (Returne exp) i
 	#exp = toIRExp inf exp
 	|(length vars)==0 = ([exp, CReturn], [], i)
-	=([Unlink, exp, CReturne], [], i)	
+	=([exp, CReturne], [], i)	
 
 getId :: String Int -> (String, Int)
 getId s i = ("_" +++ (toString i) +++ "_" +++ s, i+1)

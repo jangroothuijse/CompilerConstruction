@@ -5,7 +5,11 @@ import StdEnv, IRBuilder
 Start = 0
 
 toSSMCode :: IR -> SSMCode
-toSSMCode ir = [S (Sldsa 1), S (Sstr 5), S (Sldc 0), S (Ssth), S (Sbsr "main"), S SldrRR, S (Strap 0), S Shalt:flatten (map toSSMCodeFun ir)] ++ defaultFuncions
+toSSMCode ir = progStart ++ flatten (map toSSMCodeFun ir) ++ defaultFunctions
+
+progStart = [S (Sldsa 1), S (Sstr 5) // store start of stack in register 5.
+			, S (Sldc 0), S (Sldc 0), S (Sstmh 2), // store [] element on heap.
+			 S (Sbsr "main"), S SldrRR, S (Strap 0), S Shalt] // execute main and halt.
 
 toSSMCodeFun { blocks = blocks} = flatten (map toSSMCodeBlock blocks)
 
@@ -19,11 +23,10 @@ toSSMCommands (Branch name) = [S (Sbsr name)]
 toSSMCommands (BranchIf name) = [S (Sbrt name), S (Sajs -1)]
 toSSMCommands (BranchIfElse namet namef) = [S (Sbrt namet), S (Sbrf namef), S (Sajs -1)]
 toSSMCommands (CFCall id) = [S (Sbsr id)]
-toSSMCommands CReturn = [S Sret]
-toSSMCommands CReturne = [S SstrRR, S Sret]
+toSSMCommands CReturn = [S Sunlink, S Sret]
+toSSMCommands CReturne = [S SstrRR, S Sunlink, S Sret]
 toSSMCommands (Link i) = [S (Slink i)]
 toSSMCommands (Swap) = [S (Sswp)]
-toSSMCommands Unlink = [S Sunlink]
 toSSMCommands (Label s) = [SL s Snop]
 toSSMCommands (Drop i) = [S (Sajs (~i))]
 
@@ -55,7 +58,7 @@ toSSMCommandsOp1 :: Op1 -> [SSMCommands]
 toSSMCommandsOp1 PNot = [S Snot]
 toSSMCommandsOp1 PNeg = [S Sneg]
 
-defaultFuncions = flatten [print, createEBlock, cons, createTup, fst`, snd`, hd`, tl`, isEmpty`]
+defaultFunctions = flatten [print, createEBlock, cons, createTup, fst`, snd`, hd`, tl`, isEmpty`]
 
 print			= [SL "print" (Slds -1), S (Strap 0), S Sret]
 createEBlock	= [SL "__createEBlock" (Sldr 5), S (Slda 0), S (Sldh 0), S SstrRR, S Sret]
