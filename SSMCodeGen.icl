@@ -8,7 +8,7 @@ toSSMCode :: IR -> SSMCode
 toSSMCode ir = progStart ++ flatten (map toSSMCodeFun ir) ++ defaultFunctions
 
 progStart = [S (Sldsa 1), S (Sstr 5) // store start of stack in register 5.
-			, S (Sldc 0), S (Sldc 0), S (Sstmh 2), // store [] element on heap.
+			, S (Sldc 0), S (Ssth), // store [] element on heap.
 			 S (Sbsr "main"), S SldrRR, S (Strap 0), S Shalt] // execute main and halt.
 
 toSSMCodeFun { blocks = blocks} = flatten (map toSSMCodeBlock blocks)
@@ -65,7 +65,7 @@ createEBlock	= [SL "__createEBlock" (Sldr 5), S (Slda 0), S (Sldh 0), S SstrRR, 
 cons			= [SL "__Cons" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
 createTup		= [SL "__createTup" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
 fst`			= [SL "fst" (Slds -1), S (Sldmh 0 1), S SstrRR, S Sret]
-hd`				= [SL "hd"  (Slds -1), S (Sldmh 0 1), S SstrRR, S Sret]
+hd`				= [SL "hd"  (Slds -1), S (Sldmh 0 2), S (Sajs -1), S SstrRR, S Sret]
 snd`			= [SL "snd" (Slds -1), S (Sldmh 0 2), S SstrRR, S (Sajs -1), S Sret]
 tl`				= [SL "tl"  (Slds -1), S (Sldmh 0 2), S SstrRR, S (Sajs -1), S Sret]
 isEmpty`		= [SL "isEmpty" (Slds -1), S (Sldc 0), S (Slda 0), S Seq, S SstrRR, S Sret]
