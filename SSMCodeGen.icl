@@ -5,7 +5,7 @@ import StdEnv, IRBuilder
 Start = 0
 
 toSSMCode :: IR -> SSMCode
-toSSMCode ir = progStart ++ flatten (map toSSMCodeFun ir) ++ defaultFunctions
+toSSMCode ir = OptimizeCode (progStart ++ flatten (map toSSMCodeFun ir) ++ defaultFunctions)
 
 progStart = [S (Sldsa 1), S (Sstr 5) // store start of stack in register 5.
 			, S (Sldc 0), S (Ssth), // store [] element on heap.
@@ -81,5 +81,8 @@ OptimizeCode [SL i Sret:S ins:xs] = OptimizeCode [SL i Sret:xs]
 OptimizeCode [S Sret:S ins:xs] = OptimizeCode [S Sret:xs]
 OptimizeCode [x:xs] = [x:OptimizeCode xs]
 OptimizeCode [] = []
+
+
+
 
 
