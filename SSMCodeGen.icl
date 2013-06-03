@@ -70,3 +70,16 @@ snd`			= [SL "snd" (Slds -1), S (Sldmh 0 2), S SstrRR, S (Sajs -1), S Sret]
 tl`				= [SL "tl"  (Slds -1), S (Sldmh 0 2), S SstrRR, S (Sajs -1), S Sret]
 isEmpty`		= [SL "isEmpty" (Slds -1), S (Sldc 0), S (Slda 0), S Seq, S SstrRR, S Sret]
 
+OptimizeCode :: SSMCode -> SSMCode
+OptimizeCode [SL i (Sbra s):S ins:xs] = OptimizeCode [SL i (Sbra s):xs]
+OptimizeCode [S (Sbra s):S ins:xs] = OptimizeCode [S (Sbra s):xs]
+OptimizeCode [SL i Shalt:S ins:xs] = OptimizeCode [SL i Shalt:xs]
+OptimizeCode [S Shalt:S ins:xs] = OptimizeCode [S Shalt:xs]
+OptimizeCode [SL i Snop:S ins:xs] = OptimizeCode [SL i ins:xs]
+OptimizeCode [S Snop:xs] = OptimizeCode xs
+OptimizeCode [SL i Sret:S ins:xs] = OptimizeCode [SL i Sret:xs]
+OptimizeCode [S Sret:S ins:xs] = OptimizeCode [S Sret:xs]
+OptimizeCode [x:xs] = [x:OptimizeCode xs]
+OptimizeCode [] = []
+
+

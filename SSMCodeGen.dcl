@@ -12,3 +12,5 @@ toSSMCode :: IR -> SSMCode
 		| Sle | Slink Int | Ssth | Sstmh Int | Slt | Smod | Smul | Sne | Sneg | Snop | Snot | Sor
 		| Sret | Ssta Int | Sstl Int | Sstma | Sstml | Sstms | Sstr Int | SstrRR | Ssts | Ssub
 		| Sswp | Sswpr | Sswprr | Strap Int | Sunlink | Sxor
+
+OptimizeCode :: SSMCode -> SSMCode
