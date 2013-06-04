@@ -1,0 +1,29 @@
+Void result() {
+	Int a = 1;
+	print(200);
+	print(a);
+}
+
+Void result1(Int a) {
+	Int b = 2;
+	print(a);
+	print(b);
+}
+
+Void result2(Int a, Int b) {
+	Int c = 3;
+	print(a);
+	print(b);
+	print(c);
+}
+
+Void main() {
+	Int a = 100;
+	print(a);
+	result();
+	print(a);
+	result1(1);
+	print(a);
+	result2(1,2);
+	print(a);
+}
