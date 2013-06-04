@@ -30,11 +30,12 @@ parseSymbol t _ = parseError [] ""
 
 parseFunDecl :: RetType Id [Token] -> PR Decl
 parseFunDecl type name [] = parseError [] "expecting function body"
-parseFunDecl type name tokens = { PR | result = F { retType = type, funName = name, args = fargs.PR.result, vars = vars.PR.result, stmts = stmts.PR.result, fline = (hd tokens).line, fcolumn = (hd tokens).column }, tokens = stmts.PR.tokens } where
+parseFunDecl type name tokens = { PR | result = F { retType = type, funName = name, args = fargs.PR.result, vars = vars.PR.result, algs = algs.PR.result, stmts = stmts.PR.result, fline = (hd tokens).line, fcolumn = (hd tokens).column }, tokens = stmts.PR.tokens } where
 	fargs = parseFArgs tokens
 	funBegin = parseSymbol CBOpen fargs.PR.tokens
 	vars = parseVars funBegin.PR.tokens					// <- must be lazy
-	stmts = parseStmts vars.PR.tokens					// <- must be lazy
+	algs = parseAlgs vars.PR.tokens
+	stmts = parseStmts algs.PR.tokens					// <- must be lazy
 	
 parseFArgs :: [Token] -> PR [FArg]
 parseFArgs tokens = f argsBegin.tokens [] where
@@ -57,6 +58,8 @@ parseVars tokens
 		semi = parseSymbol Semicolon exp.PR.tokens
 		next = parseVars semi.PR.tokens
 	_	= { PR | result = [], tokens = tokens }
+
+parseAlgs tokens = {PR | result = [], tokens = tokens} // TODO: Parse algebraïc data type declaration.
 
 parseType :: [Token] -> PR Type
 parseType [{token = KBool}:xs] = { PR | result = TBool, tokens = xs }

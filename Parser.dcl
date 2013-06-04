@@ -5,17 +5,20 @@ from Tokenizer import :: Token
 import GenEq
 
 :: Prog :== [Decl]
-:: Decl = V VarDecl | F FunDecl
+:: Decl = V VarDecl | F FunDecl | A AlgDecl
 :: VarDecl  = { type :: Type, name :: Id, exp :: Exp }
-:: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], stmts :: [Stmt], fline :: Int, fcolumn :: Int }
+:: AlgDecl = { adname :: Id, parts :: [AlgPart]}
+:: AlgPart = { apname :: Id, types :: [Type]}
+:: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], algs :: [AlgDecl], stmts :: [Stmt], fline :: Int, fcolumn :: Int }
 :: RetType = RT Type | TVoid
 :: Type = TInt | TBool | TTup (Type, Type) | TList Type | TId Id | TFun RetType [Type] | TEmpty | TFixed Id
 :: FArg = { argType :: Type, argName :: Id }
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
-			| SFC FunCall | Return | Returne Exp
+			| SFC FunCall | Return | Returne Exp | Match Exp [Case]
+:: Case = Case Id [Exp] Stmt
 :: Exp  = { ex :: Exp2, eline :: Int, ecolumn :: Int}
 :: Exp2 = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt Int | EFalse | ETrue | EBrace Exp | EFC FunCall
-			| EBlock | Tup Exp Exp
+			| EBlock | Tup Exp Exp | Alg Id [Exp]
 :: FunCall = { callName :: String, callArgs :: [Exp] }
 :: Op2 = PPlus | PMin | PMul | PDiv | PMod | PEq | PLT | PGT | PLTE | PGTE | PNEq | PAnd | POr | PCons
 :: Op1 = PNot | PNeg
