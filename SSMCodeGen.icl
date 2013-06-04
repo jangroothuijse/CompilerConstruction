@@ -61,14 +61,14 @@ toSSMCommandsOp1 PNeg = [S Sneg]
 defaultFunctions = flatten [print, createEBlock, cons, createTup, fst`, snd`, hd`, tl`, isEmpty`]
 
 print			= [SL "print" (Slds -1), S (Strap 0), S Sret]
-createEBlock	= [SL "__createEBlock" (Sldr 5), S (Slda 0), S (Sldh 0), S SstrRR, S Sret]
+createEBlock	= [SL "__createEBlock" (Sldr 5), S (Slda 0), S SstrRR, S Sret]
 cons			= [SL "__Cons" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
 createTup		= [SL "__createTup" (Slds -2), S (Slds -2), S (Sstmh 2), S SstrRR, S Sret]
 fst`			= [SL "fst" (Slds -1), S (Sldmh 0 1), S SstrRR, S Sret]
 hd`				= [SL "hd"  (Slds -1), S (Sldmh 0 2), S (Sajs -1), S SstrRR, S Sret]
 snd`			= [SL "snd" (Slds -1), S (Sldmh 0 2), S SstrRR, S (Sajs -1), S Sret]
 tl`				= [SL "tl"  (Slds -1), S (Sldmh 0 2), S SstrRR, S (Sajs -1), S Sret]
-isEmpty`		= [SL "isEmpty" (Slds -1), S (Sldc 0), S (Slda 0), S Seq, S SstrRR, S Sret]
+isEmpty`		= [SL "isEmpty" (Slds -1), S (Sldr 5), S (Slda 0), S Seq, S SstrRR, S Sret]
 
 OptimizeCode :: SSMCode -> SSMCode
 OptimizeCode [SL i (Sbra s):S ins:xs] = OptimizeCode [SL i (Sbra s):xs]

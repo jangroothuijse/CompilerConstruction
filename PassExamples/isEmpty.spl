@@ -1,9 +1,9 @@
 Void main() {
 	[Int] xs = [];
 	[Int] x = 1:xs;
-	print(isEmpty(x));
-	print(isEmpty(xs));
-	print(isEmpty(tl(x)));
-	print(isEmpty([]));
-	print(isEmpty(True:[]));
+	print(isEmpty(x)); // false
+	print(isEmpty(xs)); // true
+	print(isEmpty(tl(x))); // true
+	print(isEmpty([])); // true
+	print(isEmpty(True:[])); // false
 }
