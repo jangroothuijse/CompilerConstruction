@@ -38,6 +38,7 @@ toSSMCommandsExp (EOp2 op2) = toSSMCommandsOp2 op2
 toSSMCommandsExp (EOp1 op1) = toSSMCommandsOp1 op1
 toSSMCommandsExp (EFCall name) = [S (Sbsr name), S SldrRR]
 toSSMCommandsExp (Put i) = [S (Sldc i)]
+toSSMCommandsExp (Drope i) = [S (Sajs (~i))]
 
 toSSMCommandsOp2 :: Op2 -> [SSMCommands]
 toSSMCommandsOp2 PPlus = [S Sadd]

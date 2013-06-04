@@ -28,6 +28,7 @@ Mark local and global variable references.
 	| EOp2 Op2 | EOp1 Op1	// Call operator n. (+, -, *, / etc. All build in operators).
 	| EFCall Id	// Call function Id. We add a function to generate Tupels and Lists.
 	| Put Int	// All values are transformed to Int, this Int could be a Int, a Bool or a Char. Tupels and list's do not exist as primitives but can be created by functions and read from vars.
+	| Drope Int
 // Example of Command:
 /*
 f(Int x)

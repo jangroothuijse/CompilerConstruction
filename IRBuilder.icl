@@ -49,10 +49,10 @@ toExpExp2 inf ETrue = [Put 1]
 toExpExp2 inf (EBrace exp) = toExpExp inf exp
 toExpExp2 inf (EFC f) = toExpFCall inf f
 toExpExp2 inf EBlock = [EFCall "__createEBlock"]
-toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCall "__createTup"]
+toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCall "__createTup"] ++ [Drope 2]
 
 toExpFCall :: IRInfo FunCall -> [CExp]
-toExpFCall inf { callName = name, callArgs = exp } = (flatten (map (toExpExp inf) exp)) ++ [EFCall name]
+toExpFCall inf { callName = name, callArgs = exps } = (flatten (map (toExpExp inf) exps)) ++ [EFCall name] ++ [Drope (length exps)]
 
 toBlockStmts :: IRInfo Id [Stmt] -> [Block]
 toBlockStmts inf=:(mainDecls, args, vars) name s
@@ -123,7 +123,7 @@ isGlobal [V {VarDecl | name = name}:xs] id
 isGlobal _ _ = False
 
 getLocal :: [FArg] [VarDecl] Id -> Int
-getLocal a b c = getLocal a b c (-1-(lenght a))
+getLocal a b c = getLocal a b c (-1-(length a))
 where
 	getLocal [{FArg|argName = idx}:rg] decl id i
 	|idx==id	= i
@@ -132,8 +132,6 @@ where
 	|idx==id = (i + 2)
 	=getLocal [] cl id (i + 1)
 	getLocal [] _ _ _ = abort "getLocal used incorrect" // Shouldn't happen
-	lenght [x:xs] = 1 + lenght xs
-	lenght [] = 0
 getGlobal :: [Decl] Id -> Int
 getGlobal a b = getGlobal a b 0
 where
