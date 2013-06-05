@@ -140,7 +140,6 @@ where
 	=getGlobal xs id (i+1)
 	getGlobal [] _ _ = abort "getGlobal used incorrect" // Shouldn't happen
 
-// TODO: generate main
 toMain :: [Decl] -> IR
 toMain mainDecls = [{name = "main", blocks = [{name = "main", commands = main}:blocks]}]
 	where
