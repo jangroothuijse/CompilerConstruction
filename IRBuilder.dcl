@@ -23,7 +23,6 @@ Mark local and global variable references.
 	| Label Id // Used to return from if and while functions.
 	| Drop Int // Used to drop parameters after usage.
 	| Swap // Swap topmost values on stack.
-	| BranchMatch CExp [(Int, Id)] // CExp is the value to match against, Int the count number of the algebraic type and Id the label to jump at.
 :: CExp = Read Int	// Read a global var and put it on the stack.
 	| Readl Int // Read a local var or param. (First param is -n, second -n+1, ... last param is -1, first local var is 1, second 2...) 0 is the return adress on the stack.
 	| EOp2 Op2 | EOp1 Op1	// Call operator n. (+, -, *, / etc. All build in operators).

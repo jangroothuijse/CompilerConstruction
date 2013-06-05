@@ -9,7 +9,7 @@ import GenEq
 :: VarDecl  = { type :: Type, name :: Id, exp :: Exp }
 :: AlgDecl = { adname :: Id, parts :: [AlgPart]}
 :: AlgPart = { apname :: Id, types :: [Type]}
-:: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], algs :: [AlgDecl], stmts :: [Stmt], fline :: Int, fcolumn :: Int }
+:: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], stmts :: [Stmt], fline :: Int, fcolumn :: Int }
 :: RetType = RT Type | TVoid
 :: Type = TInt | TBool | TTup (Type, Type) | TList Type | TId Id | TFun RetType [Type] | TEmpty | TFixed Id
 :: FArg = { argType :: Type, argName :: Id }
