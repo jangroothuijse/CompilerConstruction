@@ -4,18 +4,9 @@ import SemanticAnalyzer, Parser
 
 // Change the AST into a intermediate representation to make code generation easier.
 
-/*
-Todo:
-Reorder operators for code.
-Label blocks.
-Reference command flow operators to block labels (if/while/funcall).
-Mark local and global variable references.
-*/
-
 :: IR :== [IRFun]
 :: IRFun = { name :: Id, blocks :: [Block]} // Id from parser is unique, since overloading is not allowed.
 :: Block = { name :: Id, commands :: [Command]} // Generated Id.
-// Other problem to solve: Void function that doenst end in a return;
 :: Command = CExp [CExp] | CAssing Int | CAssingl Int  // CAssing global and CAssingl local, same as read and readl.
 	| Branch Id | BranchIf Id | BranchIfElse Id Id
 	| CFCall Id | CReturn | CReturne
@@ -39,11 +30,6 @@ Would change into:
 [{name = f, blocks = [{ name = "f_b1", commands = [CExp [Read "x", Put 5, Op '+'], Assing "y", CExp [Read "x", Put 8, Op '>'] JumpTrue "f_b2" "f_b3"]}
 					, { name = "f_b2", commands = [CExp [Put 'True'], Return]}
 					, { name = "f_b3", commands = [CExp [Put 'False'], Return]}]}]
-*/
-
-/* Notes:
-Need Label (Id) for while and if statements, Could be generated for already unique name if multiple are needed.
-Blocks called from if & while statements need to return to the orginal.
 */
 
 toIR :: Prog -> IR
