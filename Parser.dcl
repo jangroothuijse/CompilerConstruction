@@ -7,11 +7,11 @@ import GenEq
 :: Prog :== [Decl]
 :: Decl = V VarDecl | F FunDecl | A AlgDecl
 :: VarDecl  = { type :: Type, name :: Id, exp :: Exp }
-:: AlgDecl = { adname :: Id, parts :: [AlgPart]}
+:: AlgDecl = { adname :: Id, poly :: [Id], parts :: [AlgPart]}
 :: AlgPart = { apname :: Id, types :: [Type]}
 :: FunDecl = { retType :: RetType, funName :: Id, args :: [FArg], vars ::[VarDecl], stmts :: [Stmt], fline :: Int, fcolumn :: Int }
 :: RetType = RT Type | TVoid
-:: Type = TInt | TBool | TTup (Type, Type) | TList Type | TId Id | TFun RetType [Type] | TEmpty | TFixed Id
+:: Type = TInt | TBool | TTup (Type, Type) | TList Type | TId Id | TFun RetType [Type] | TEmpty | TFixed Id | TAlg Id [Type]
 :: FArg = { argType :: Type, argName :: Id }
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
 			| SFC FunCall | Return | Returne Exp | Match Exp [Case]
