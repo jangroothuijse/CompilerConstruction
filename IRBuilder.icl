@@ -15,14 +15,15 @@ toIRDecl :: [Decl] [Decl] -> [IRFun]
 toIRDecl mainDecls [var=:(V _):xs]	= toIRDecl (mainDecls ++ [var]) xs // TODO: We probably have to put the main function at the end (and start with a jump instruction to it) to keep lazyness.
 toIRDecl mainDecls [mainDecl=:(F {funName = "main"}):xs] = toMain (mainDecls ++ [mainDecl])
 toIRDecl mainDecls [F { funName = name, args = args, vars = vars, stmts = stmts }:xs]  = [{ IRFun | name = name, blocks = (toBlockStmts (mainDecls, args, vars) name stmts)}:(toIRDecl mainDecls xs)]
+toIRDecl mainDecls [alg=:(A _):xs] = toIRDecl (mainDecls ++ [alg]) xs
 toIRDecl mainDecls [] = abort "no main"
 
 toIRBlock :: Block -> IRFun
 toIRBlock block=:{Block | name = name} = {IRFun | name = name, blocks = [block]}
 
 toIRLocVarDecls :: IRInfo -> [Command]
-toIRLocVarDecls inf=:(mainDecls, args, vars=:[va:rs]) = [Link (length vars):flatten [toIRLocVarDecl inf var x \\ var <- vars & x<-[1..]]]
-toIRLocVarDecls (mainDecls, args, []) = [Link 0]
+toIRLocVarDecls inf=:(_, _, vars=:[va:rs]) = [Link (length vars):flatten [toIRLocVarDecl inf var x \\ var <- vars & x<-[1..]]]
+toIRLocVarDecls _ = [Link 0]
 
 toIRLocVarDecl :: IRInfo VarDecl Int -> [Command]
 toIRLocVarDecl inf {exp = exp} i = [toIRExp inf exp, CAssingl i]
@@ -138,6 +139,7 @@ where
 	getGlobal [V {VarDecl | name = name}:xs] id i
 	| id == name = i
 	=getGlobal xs id (i+1)
+	getGlobal [A _:xs] id i = getGlobal xs id i
 	getGlobal [] _ _ = abort "getGlobal used incorrect" // Shouldn't happen
 
 toMain :: [Decl] -> IR
@@ -149,6 +151,7 @@ toMain mainDecls = [{name = "main", blocks = [{name = "main", commands = main}:b
 	#exp = toIRExp (mainDecls, [], []) exp
 	#(main, blocks) = toMain xs
 	= ([exp:Swap:main], blocks)
+	toMain [A _:xs] = toMain xs
 	toMain [F {funName = "main", args = args, vars = vars, stmts = stmts}:_]
 	#[{commands = main}:blocks] = toBlockStmts (mainDecls, args, vars) "main" stmts
 	=(main, blocks)
