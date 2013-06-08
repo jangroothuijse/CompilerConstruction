@@ -8,6 +8,7 @@ import GenEq
 		 | KIf | KElse | KWhile | KReturn
 		 | KVoid | KInt | KBool
 		 | KTrue | KFalse | KAssign
+		 | KType
 :: Operator = Plus | Min | Mul | Div | Mod | Eq | LT | GT | LTE | GTE | NEq | And | Or | Cons | Not
 
 :: CharMeta = { c :: Char, l :: Int, col :: Int }
