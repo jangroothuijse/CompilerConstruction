@@ -16,6 +16,7 @@ parse tokens = let r = parseDecl tokens in [r.PR.result : parse r.PR.tokens]
 parseDecl :: [Token] -> PR Decl
 parseDecl [] = parseError [] "expecting declaration"
 parseDecl t
+|		(hd t).Token.token === KType = parseAlg (tl t)
 |		(hd t).Token.token === KVoid = let iden = parseId (tl t) in parseFunDecl TVoid iden.result iden.tokens
 #		type = parseType t		
 #		iden = parseId type.PR.tokens
@@ -58,7 +59,8 @@ parseVars tokens
 		next = parseVars semi.PR.tokens
 	_	= { PR | result = [], tokens = tokens }
 
-parseAlgs tokens = {PR | result = [], tokens = tokens} // TODO: Parse algebraïc data type declaration.
+parseAlg :: [Token] -> PR Decl
+parseAlg [{token = Identifier name}:xs] = pr (A { AlgDecl | adname = name, poly = [], parts = [] }) xs
 
 parseType :: [Token] -> PR Type
 parseType [{token = KBool}:xs] = { PR | result = TBool, tokens = xs }
@@ -76,12 +78,28 @@ parseMaybeType [{token = KBool}:xs] = Just { PR | result = TBool, tokens = xs }
 parseMaybeType [{token = KInt}:xs] = Just { PR | result = TInt, tokens = xs }
 parseMaybeType [{token = (Identifier i)}:xs] = Just { PR | result = (TId i), tokens = xs }
 parseMaybeType [{token = SBOpen}:xs] = let i = parseMaybeType xs in propNothing i { PR | result = TList (fromJust i).PR.result, tokens = (parseSymbol SBClose (fromJust i).PR.tokens).PR.tokens }
-parseMaybeType [{token = POpen}:xs] = if (isJust t1 && split && isJust t2 && tupEnd) 
-			(Just { PR | result = TTup ((fromJust t1).PR.result, (fromJust t2).PR.result), tokens = tl (fromJust t2).PR.tokens }) Nothing where
-	t1 = parseMaybeType xs
-	split = (hd (fromJust t1).PR.tokens).token === Comma
-	t2 = parseMaybeType (tl (fromJust t1).PR.tokens)
-	tupEnd = (hd (fromJust t1).PR.tokens).token === PClose
+parseMaybeType [{token = POpen}:xs] 
+# t1 = parseMaybeType xs
+| isNothing t1 = Nothing
+| (hd (fromJust t1).PR.tokens).token === Comma
+	# t2 = parseMaybeType (tl (fromJust t1).PR.tokens)
+	| isNothing t2 = Nothing
+	= Just { PR | result = TTup ((fromJust t1).PR.result, (fromJust t2).PR.result), tokens = tl (fromJust t2).PR.tokens }
+= case t1 of 
+	(Just { tokens = tokens, result = TId adname }) = 
+		let r = f [] tokens in 
+			if (isJust r) 
+				(Just (pr (TAlg adname (fromJust r).PR.result) (fromJust r).PR.tokens)) 
+				Nothing
+	where
+		f :: [Type] [Token] -> Maybe (PR [Type])
+		f acc [{token = PClose}:tokens] = Just { PR | tokens = tokens, result = acc }
+		f acc [] = Nothing
+		f acc tokens
+		# t3 = parseMaybeType tokens
+		| isNothing t3 = Nothing
+		= f (acc ++ [(fromJust t3).PR.result]) (fromJust t3).PR.tokens
+	_ = Nothing
 parseMaybeType t = Nothing
 
 parseId [{token = Identifier i}:xs] = { PR | result = i, tokens = xs }
