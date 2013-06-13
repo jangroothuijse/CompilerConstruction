@@ -12,7 +12,7 @@ toIR :: Prog -> IR
 toIR prog = toIRDecl [] prog
 
 toIRDecl :: [Decl] [Decl] -> [IRFun]
-toIRDecl mainDecls [var=:(V _):xs]	= toIRDecl (mainDecls ++ [var]) xs // TODO: We probably have to put the main function at the end (and start with a jump instruction to it) to keep lazyness.
+toIRDecl mainDecls [var=:(V _):xs]	= toIRDecl (mainDecls ++ [var]) xs
 toIRDecl mainDecls [mainDecl=:(F {funName = "main"}):xs] = toMain (mainDecls ++ [mainDecl])
 toIRDecl mainDecls [F { funName = name, args = args, vars = vars, stmts = stmts }:xs]  = [{ IRFun | name = name, blocks = (toBlockStmts (mainDecls, args, vars) name stmts)}:(toIRDecl mainDecls xs)]
 toIRDecl mainDecls [alg=:(A _):xs] = toIRDecl (mainDecls ++ [alg]) xs
