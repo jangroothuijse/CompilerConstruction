@@ -24,10 +24,9 @@ Start world
 #   (succes, file, world)   = fopen filename FReadText world
 |   not succes  =   abort ("\nUnable to open " +++ filename +++ "\n")
 # console = console <<< ("Compiling " +++ filename +++ "\n")
+//= (tokenize o toLines) file
 # prog = (parse o tokenize o toLines) file
-|	size args > 2 && args.[2] == "-print"
-	#console = prettyPrint console prog
-	= abort "done"
+|	size args > 2 && args.[2] == "-print" = prettyPrint console prog
 # defaultEnv = splDefaultEnv console
 # { console = console, error = error } = analyze defaultEnv prog
 | error = abort "Semantic analyzes found errors, program rejected\n"
@@ -38,5 +37,5 @@ Start world
 # outputFile = writeSSM outputFile ssmCode
 #(succes, world) = fclose outputFile world
 | not succes = abort "Fail to close output file"
-= (ssmCode, "\n", toIR prog, "\n", prog, world)
+= console // (ssmCode, "\n", toIR prog, "\n", prog, world)
 

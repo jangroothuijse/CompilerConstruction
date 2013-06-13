@@ -66,7 +66,9 @@ tokenizerString acc xxs=:[x:xs] begin
 	"True"		= [t begin KTrue:tokenizer xxs]
 	"False"		= [t begin KFalse:tokenizer xxs]
 	"Void"		= [t begin KVoid:tokenizer xxs]
-	"Type"		= [t begin KType:tokenizer xxs]
+	"type"		= [t begin KType:tokenizer xxs]
+	"match"		= [t begin KMatch:tokenizer xxs]
+	"case"		= [t begin KCase:tokenizer xxs]
 	s			= [t begin (Identifier s):tokenizer xxs]
 
 tokenizerInt :: !Int [CharMeta] CharMeta -> [Token]

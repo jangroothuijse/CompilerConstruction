@@ -63,7 +63,7 @@ parseAlg :: [Token] -> PR Decl
 parseAlg [{token = Identifier name}:xs]
 # { PR | result = poly, tokens = t1 } = parsePoly [] xs
 # { PR | result = parts, tokens = t2 } = parsePart [] (parseSymbol KAssign t1).tokens
-= pr (A { AlgDecl | adname = name, poly = poly, parts = parts }) xs
+= pr (A { AlgDecl | adname = name, poly = poly, parts = parts }) t2
 where
 	parsePoly :: [Id] [Token] -> PR [Id]
 	parsePoly acc [{token = Identifier n}:xs] = parsePoly [n:acc] xs 
@@ -72,15 +72,26 @@ where
 	parsePart :: [AlgPart] [Token] -> PR [AlgPart]
 	parsePart acc [{token = Semicolon }:xs] = pr acc xs
 	parsePart acc [{token = Bar }:xs] = parsePart acc xs
-	parsePart acc [{token = Identifier n }:xs] = let t = parseType xs in parsePart [{ AlgPart | apname = n, atype = t.PR.result }] t.PR.tokens
+	parsePart acc [{token = Identifier n }:xs] = let mt = parseMaybeType xs in case mt of
+		(Just t) = parsePart [{ AlgPart | apname = n, atype = t.PR.result }] t.PR.tokens
+		Nothing = parsePart [{ AlgPart | apname = n, atype = TEmpty }] xs
 	
-
 parseType :: [Token] -> PR Type
 parseType [{token = KBool}:xs] = { PR | result = TBool, tokens = xs }
 parseType [{token = KInt}:xs] = { PR | result = TInt, tokens = xs }
 parseType [{token = (Identifier i)}:xs] = { PR | result = (TId i), tokens = xs }
 parseType [{token = SBOpen}:xs] = let i = parseType xs in { PR | result = (TList i.PR.result), tokens = (parseSymbol SBClose i.PR.tokens).PR.tokens }
-parseType [{token = POpen}:xs] = let t = ((parseType) ~># ((parseSymbol Comma) ~>- parseType)) xs in { PR | result = TTup t.PR.result, tokens = (parseSymbol PClose t.PR.tokens).PR.tokens }
+parseType [{token = POpen}:xs]
+# { result = type1, tokens = xs } = parseType xs
+| (hd xs).token === Comma 
+	# { result = type2, tokens = xs } = parseType (tl xs)
+	= { PR | result = TTup (type1, type2), tokens = xs }
+= case type1 of
+	(TId i) = let { PR | result = result, tokens = tokens } = f [] (tl xs) in { PR | result = TAlg i result, tokens = tokens } where
+		f :: [Type] [Token] -> PR [Type]
+		f acc [{ token = PClose }:tokens] = { PR | tokens = tokens, result = acc }
+		f acc t = let { PR | tokens = tokens, result = result } = parseType t in f [result:acc] tokens
+	_ = parseError xs " Failed to parse type"
 parseType t = parseError t " Failed to parse type"
 
 propNothing :: (Maybe a) b -> Maybe b
@@ -137,6 +148,18 @@ parseStmt [{token = KIf}:xs] = if ((hd thenBlock.PR.tokens).Token.token === KEls
 		e = ((parseSymbol POpen) ~>- (parseExp ~> (parseSymbol PClose))) xs
 		thenBlock = parseStmt e.PR.tokens
 		elseBlock = parseStmt (tl thenBlock.PR.tokens)
+parseStmt [{token = KMatch}:xs]
+# { PR | tokens = xs, result = i } = ((parseSymbol POpen) ~>- (parseId ~> ((parseSymbol PClose) ~> (parseSymbol CBOpen)))) xs
+= let { PR | result = cases, tokens = tokens } = f [] xs in { PR | result = Match i cases, tokens = tokens } where
+	f :: [Case] [Token] -> PR [Case]
+	f acc [{token = CBClose}:xs] = pr acc xs
+	f acc [{token = KCase}:[{token = POpen}:xs]] = case xs of
+		[{token = Identifier cn }:[{token = PClose }:xxs]]
+			# { PR | result = stmts, tokens = xxs } = parseStmt xxs
+			= f (acc ++ [Case cn [] stmts]) xxs
+		[{token = Identifier cn }:[{token = Identifier varName }:xxs]]
+			# { PR | result = stmts, tokens = xxs } = ((parseSymbol PClose) ~>- parseStmt) xxs
+			= f (acc ++ [Case cn [varName] stmts]) xxs
 parseStmt [{token = (Identifier i)}:[{token = KAssign}:xs]] = let e = (parseExp ~> (parseSymbol Semicolon)) xs in { PR | result = Ass i e.PR.result, tokens = e.PR.tokens }
 parseStmt [{token = (Identifier i)}:[{token = POpen}:xs]] = { PR | result = SFC { FunCall | callName = i, callArgs = fa }, tokens = (parseSymbol Semicolon xxs).tokens }
 where { result = fa, tokens = xxs } = parseFArgExps xs
@@ -205,6 +228,9 @@ where
 	parseFactorExp tokens=:[{token = KTrue}:xs] = pr (e2 ETrue tokens) xs
 	parseFactorExp tokens=:[{token = KFalse}:xs] = pr (e2 EFalse tokens) xs
 	parseFactorExp tokens=:[{token = SBOpen}:[{token = SBClose}:xs]] = pr (e2 EBlock tokens) xs
+	parseFactorExp tokens=:[{token = SBOpen}:[{token = Identifier c}:xs]] = case xs of
+		[{token = SBClose}:xxs] = pr (e2 (Alg c []) xxs) xxs
+		tokens = let { PR | result = e, tokens = t } = (parseExp ~> (parseSymbol SBClose)) tokens in pr (e2 (Alg c [e]) t) t	
 	parseFactorExp tokens=:[{token = POpen}:xs] = case e.PR.tokens of
 		[{token = Comma}:xxs] = let ex = parseExp xxs in if ((hd ex.PR.tokens).token === PClose) (pr (e2 (Tup e.PR.result ex.PR.result) tokens) (tl ex.PR.tokens)) (parseError xxs "expecting )")
 		[{token = PClose}:xss] = pr (e2 (EBrace e.PR.result) tokens) xss
