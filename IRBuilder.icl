@@ -115,9 +115,35 @@ toIRCases :: IRInfo Id [Case] Int -> ([(Int, Id)], [Block], Int)
 toIRCases inf=:(mainDecls, _, _) tvar [Case name var stmt:xs] i
 #(id, i) = getId name i
 #(cases, blocks, i) = toIRCases inf tvar xs i
-// TODO parse block, replace var in block with snd(tvar)
-=([(getAlgNr mainDecls name, id):cases], blocks, i)
+#block = toIRCaseBlock inf stmt var tvar id
+=([(getAlgNr mainDecls name, id):cases], block ++ blocks, i)
 toIRCases _ _ [] i = ([], [], i)
+
+toIRCaseBlock :: IRInfo Stmt [Id] Id Id -> [Block]
+toIRCaseBlock inf stmt [] tvar blockName = toBlockStmts inf blockName [stmt]
+toIRCaseBlock inf stmt [var] tvar blockName = toBlockStmts inf blockName [c stmt]
+	where
+	// replace var in block with snd(tvar)
+	c (Block stmt) = Block (map c stmt)
+	c (If exp stmt) = If (ce exp) (c stmt)
+	c (Ife exp stmt1 stmt2) = Ife (ce exp) (c stmt1) (c stmt2)
+	c (While exp stmt) = While (ce exp) (c stmt)
+	c (Ass id exp) = Ass id (ce exp)
+	c (Returne exp) = Returne (ce exp)
+	c (Match id cases) = Match id (map cc cases)
+	c x = x
+	ce e = {e & ex = (ce2 e.ex)}
+	ce2 (I id)
+	|id == var = EFC { callName = "snd", callArgs = [{ex = I tvar, eline = 0, ecolumn = 0}]}
+	= I id
+	ce2 (EFC f) = EFC {f & callArgs = map ce f.callArgs}
+	ce2 (Op2 exp1 op2 exp2) = Op2 (ce exp1) op2 (ce exp2)
+	ce2 (Op1 op1 exp) = Op1 op1 (ce exp)
+	ce2 (EBrace exp) = EBrace (ce exp)
+	ce2 (Tup exp1 exp2) = Tup (ce exp1) (ce exp2)
+	ce2 (Alg id exps) = Alg id (map ce exps)
+	ce2 x = x
+	cc (Case id ids stmt) = Case id ids (c stmt)
 
 getAlgNr :: [Decl] Id -> Int
 getAlgNr [V _:xs] type = getAlgNr xs type
