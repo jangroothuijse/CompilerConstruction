@@ -51,6 +51,8 @@ toExpExp2 inf (EBrace exp) = toExpExp inf exp
 toExpExp2 inf (EFC f) = toExpFCall inf f
 toExpExp2 inf EBlock = [EFCall "__createEBlock"]
 toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCall "__createTup"] ++ [Drope 2]
+toExpExp2 inf (Alg id [exp]) = [Put (getAlgNr inf id)] ++ (toExpExp inf exp) ++ [EFCall "__createAlg"] ++ [Drope 2]
+toExpExp2 inf (Alg id []) = [Put (getAlgNr inf id), Put 0] ++ [EFCall "__createAlg"] ++ [Drope 2]
 
 toExpFCall :: IRInfo FunCall -> [CExp]
 toExpFCall inf { callName = name, callArgs = exps } = (flatten (map (toExpExp inf) exps)) ++ [EFCall name] ++ [Drope (length exps)]
@@ -59,7 +61,7 @@ toBlockStmts :: IRInfo Id [Stmt] -> [Block]
 toBlockStmts inf=:(mainDecls, args, vars) name s
 #varblock = toIRLocVarDecls inf
 #(commands, blocks, _) = toBlockStmts s 0
-=[{name = name, commands = varblock ++ commands ++ [CReturn]}:blocks] // TODO: add return only when required
+=[{name = name, commands = varblock ++ commands ++ [CReturn]}:blocks]
 	where
 	toBlockStmts :: [Stmt] Int -> ([Command], [Block], Int)
 	toBlockStmts [x:xs] i
@@ -104,6 +106,21 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#exp = toIRExp inf exp
 	|(length vars)==0 = ([exp, CReturne], [], i)
 	=([exp, CReturne], [], i)	
+	toBlockStmt (Match var cases) i
+	#exp = CExp (toExpExp2 inf (I var))
+	#(cases, blocks, i) = toIRCases inf var cases i
+	=([exp, CFCall "fst", BranchMatch cases], blocks, i)
+
+toIRCases :: IRInfo Id [Case] Int -> ([(Int, Id)], [Block], Int)
+toIRCases inf tvar [Case name var stmt:xs] i
+#(id, i) = getId name i
+#(cases, blocks, i) = toIRCases inf tvar xs i
+// TODO parse block, replace var in block with snd(tvar)
+=([(getAlgNr inf name, id):cases], blocks, i)
+toIRCases _ _ [] i = ([], [], i)
+
+getAlgNr :: IRInfo Id -> Int
+getAlgNr mainDecls type = 0 // TODO find correct NR for alg type.
 
 getId :: String Int -> (String, Int)
 getId s i = ("_" +++ (toString i) +++ "_" +++ s, i+1)

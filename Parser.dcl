@@ -14,8 +14,8 @@ import GenEq
 :: Type = TInt | TBool | TTup (Type, Type) | TList Type | TId Id | TFun RetType [Type] | TEmpty | TFixed Id | TAlg Id [Type]
 :: FArg = { argType :: Type, argName :: Id }
 :: Stmt = Block [Stmt] | If Exp Stmt | Ife Exp Stmt Stmt | While Exp Stmt | Ass Id Exp
-			| SFC FunCall | Return | Returne Exp | Match Exp [Case]
-:: Case = Case Id [Exp] Stmt
+			| SFC FunCall | Return | Returne Exp | Match Id [Case]
+:: Case = Case Id [Id] Stmt
 :: Exp  = { ex :: Exp2, eline :: Int, ecolumn :: Int}
 :: Exp2 = I Id | Op2 Exp Op2 Exp | Op1 Op1 Exp | EInt Int | EFalse | ETrue | EBrace Exp | EFC FunCall
 			| EBlock | Tup Exp Exp | Alg Id [Exp]
