@@ -60,7 +60,20 @@ parseVars tokens
 	_	= { PR | result = [], tokens = tokens }
 
 parseAlg :: [Token] -> PR Decl
-parseAlg [{token = Identifier name}:xs] = pr (A { AlgDecl | adname = name, poly = [], parts = [] }) xs
+parseAlg [{token = Identifier name}:xs]
+# { PR | result = poly, tokens = t1 } = parsePoly [] xs
+# { PR | result = parts, tokens = t2 } = parsePart [] (parseSymbol KAssign t1).tokens
+= pr (A { AlgDecl | adname = name, poly = poly, parts = parts }) xs
+where
+	parsePoly :: [Id] [Token] -> PR [Id]
+	parsePoly acc [{token = Identifier n}:xs] = parsePoly [n:acc] xs 
+	parsePoly acc [] = parseError [] "expected Algebraic type declaration, found EOF"
+	parsePoly acc tokens = pr acc tokens
+	parsePart :: [AlgPart] [Token] -> PR [AlgPart]
+	parsePart acc [{token = Semicolon }:xs] = pr acc xs
+	parsePart acc [{token = Bar }:xs] = parsePart acc xs
+	parsePart acc [{token = Identifier n }:xs] = let t = parseType xs in parsePart [{ AlgPart | apname = n, atype = t.PR.result }] t.PR.tokens
+	
 
 parseType :: [Token] -> PR Type
 parseType [{token = KBool}:xs] = { PR | result = TBool, tokens = xs }

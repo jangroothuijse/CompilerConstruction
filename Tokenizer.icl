@@ -29,6 +29,7 @@ tokenizer [cm=:{c = ';'}:xs] = [t cm Semicolon: tokenizer xs]
 
 tokenizer [cm=:{c = '&'}:[{c = '&'}:xs]] = [t cm (Op And): tokenizer xs]
 tokenizer [cm=:{c = '|'}:[{c = '|'}:xs]] = [t cm (Op Or): tokenizer xs]
+tokenizer [cm=:{c = '|'}:xs] = [t cm Bar: tokenizer xs]
 
 tokenizer [cm=:{c = '='}:[{c = '='}:xs]] = [t cm (Op Eq): tokenizer xs]
 tokenizer [cm=:{c = '<'}:[{c = '='}:xs]] = [t cm (Op LTE): tokenizer xs]
