@@ -1,0 +1,21 @@
+type Maybe a = Nothing | Just a;
+
+Bool isNothing((Maybe a) m) {
+	match (m) {
+		case (Nothing) return True;
+		case (Just a) return False;
+	}
+}
+
+Void main () {
+	(Maybe Int) n = [ Nothing ];
+	(Maybe Int) o = [ Just 1 ];
+	
+	print (isNothing(n));
+	print (isNothing(o));
+	
+	match (o) {
+		case (Nothing) print(False);
+		case (Just i) print(i);
+	}
+}
