@@ -44,15 +44,15 @@ toExpExp2 (mainDecls, args, vars) (I name)
 =[Readl (getLocal args vars name)]
 toExpExp2 inf (Op2 ex1 op2 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EOp2 op2]
 toExpExp2 inf (Op1 op1 exp) = (toExpExp inf exp) ++ [EOp1 op1]
-toExpExp2 inf (EInt int) = [Put int]
-toExpExp2 inf EFalse = [Put 0]
-toExpExp2 inf ETrue = [Put 1]
+toExpExp2 _ (EInt int) = [Put int]
+toExpExp2 _ EFalse = [Put 0]
+toExpExp2 _ ETrue = [Put 1]
 toExpExp2 inf (EBrace exp) = toExpExp inf exp
 toExpExp2 inf (EFC f) = toExpFCall inf f
-toExpExp2 inf EBlock = [EFCall "__createEBlock"]
+toExpExp2 _ EBlock = [EFCall "__createEBlock"]
 toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCall "__createTup"] ++ [Drope 2]
-toExpExp2 inf (Alg id [exp]) = [Put (getAlgNr inf id)] ++ (toExpExp inf exp) ++ [EFCall "__createAlg"] ++ [Drope 2]
-toExpExp2 inf (Alg id []) = [Put (getAlgNr inf id), Put 0] ++ [EFCall "__createAlg"] ++ [Drope 2]
+toExpExp2 inf=:(mainDecls, _, _) (Alg id [exp]) = [Put (getAlgNr mainDecls id)] ++ (toExpExp inf exp) ++ [EFCall "__createAlg"] ++ [Drope 2]
+toExpExp2 (mainDecls, _, _) (Alg id []) = [Put (getAlgNr mainDecls id), Put 0] ++ [EFCall "__createAlg"] ++ [Drope 2]
 
 toExpFCall :: IRInfo FunCall -> [CExp]
 toExpFCall inf { callName = name, callArgs = exps } = (flatten (map (toExpExp inf) exps)) ++ [EFCall name] ++ [Drope (length exps)]
@@ -112,15 +112,22 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	=([exp, CFCall "fst", BranchMatch cases], blocks, i)
 
 toIRCases :: IRInfo Id [Case] Int -> ([(Int, Id)], [Block], Int)
-toIRCases inf tvar [Case name var stmt:xs] i
+toIRCases inf=:(mainDecls, _, _) tvar [Case name var stmt:xs] i
 #(id, i) = getId name i
 #(cases, blocks, i) = toIRCases inf tvar xs i
 // TODO parse block, replace var in block with snd(tvar)
-=([(getAlgNr inf name, id):cases], blocks, i)
+=([(getAlgNr mainDecls name, id):cases], blocks, i)
 toIRCases _ _ [] i = ([], [], i)
 
-getAlgNr :: IRInfo Id -> Int
-getAlgNr mainDecls type = 0 // TODO find correct NR for alg type.
+getAlgNr :: [Decl] Id -> Int
+getAlgNr [V _:xs] type = getAlgNr xs type
+getAlgNr [F _:xs] type = getAlgNr xs type
+getAlgNr [A {adname = name, parts = parts}:xs] type = getAlgNr` 0 parts xs
+	where
+	getAlgNr` i [{apname = name`}:xs] xss
+	|name` == name = i
+	= getAlgNr` (i+1) xs xss
+	getAlgNr` _ [] xss = getAlgNr xss type
 
 getId :: String Int -> (String, Int)
 getId s i = ("_" +++ (toString i) +++ "_" +++ s, i+1)
