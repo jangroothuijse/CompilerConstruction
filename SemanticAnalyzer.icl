@@ -30,7 +30,7 @@ instance analyze Decl where
 	analyze e (F f) = analyze e f
 	analyze e (A a) = analyze e a
 instance analyze VarDecl where analyze ue=:{ global = g } v = typeCheck (analyze { ue & global = g addIndexed (v.name, v.type), local = newTree 63 } v.exp) v.exp (toFixed v.type)	
-instance analyze AlgDecl where analyze ue=:{ global = g } a = ue
+instance analyze AlgDecl where analyze ue=:{ global = g } a = ue // TODO check if used types exists (or are parameters), add type of the type environment
 instance analyze FunDecl where
 	analyze ue=:{ e = e, global = global, console = console, error = error } f = 
 		(fa (foldl (localVar) (returnCheck { ue & e = { e & functionId = Just f.funName }, local = local, global = updatedGlobal, console = console2, error = error || not (old === TEmpty) } f) f.vars) f.stmts) where
