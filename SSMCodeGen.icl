@@ -30,6 +30,7 @@ toSSMCommands (Swap) = [S Sswp]
 toSSMCommands (Label s) = [SL s Snop]
 toSSMCommands (Drop i) = [S (Sajs (~i))]
 toSSMCommands (BranchMatch [(i, name):cases]) = [S (Slds 0): S (Sldc i): S Seq: S (Sbrt name): toSSMCommands (BranchMatch cases)]
+toSSMCommands (BranchMatch []) = [S (Sajs -1)]
 
 
 toSSMCommandsExp :: CExp -> [SSMCommands] 

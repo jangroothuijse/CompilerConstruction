@@ -131,6 +131,7 @@ toIRCaseBlock inf stmt [var] tvar blockName = toBlockStmts inf blockName [c stmt
 	c (Ass id exp) = Ass id (ce exp)
 	c (Returne exp) = Returne (ce exp)
 	c (Match id cases) = Match id (map cc cases)
+	c (SFC f) = SFC {f & callArgs = map ce f.callArgs}
 	c x = x
 	ce e = {e & ex = (ce2 e.ex)}
 	ce2 (I id)
@@ -154,6 +155,7 @@ getAlgNr [A {adname = name, parts = parts}:xs] type = getAlgNr` 0 parts xs
 	|name` == name = i
 	= getAlgNr` (i+1) xs xss
 	getAlgNr` _ [] xss = getAlgNr xss type
+getAlgNr _ x = abort ("getAlgNr used incorrect: " +++ x) // Shouldn't happen
 
 getId :: String Int -> (String, Int)
 getId s i = ("_" +++ (toString i) +++ "_" +++ s, i+1)
@@ -182,7 +184,7 @@ where
 	getLocal [] [{VarDecl|name = idx}:cl] id i
 	|idx==id = (i + 2)
 	=getLocal [] cl id (i + 1)
-	getLocal [] _ _ _ = abort "getLocal used incorrect" // Shouldn't happen
+	getLocal _ _ id _ = abort ("getLocal used incorrect: " +++ id) // Shouldn't happen
 getGlobal :: [Decl] Id -> Int
 getGlobal a b = getGlobal a b 0
 where
