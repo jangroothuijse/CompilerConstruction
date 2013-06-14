@@ -73,8 +73,8 @@ where
 	parsePart acc [{token = Semicolon }:xs] = pr acc xs
 	parsePart acc [{token = Bar }:xs] = parsePart acc xs
 	parsePart acc [{token = Identifier n }:xs] = let mt = parseMaybeType xs in case mt of
-		(Just t) = parsePart [{ AlgPart | apname = n, atype = t.PR.result }] t.PR.tokens
-		Nothing = parsePart [{ AlgPart | apname = n, atype = TEmpty }] xs
+		(Just t) = parsePart (acc ++ [{ AlgPart | apname = n, atype = t.PR.result }]) t.PR.tokens
+		Nothing = parsePart (acc ++ [{ AlgPart | apname = n, atype = TEmpty }]) xs
 	
 parseType :: [Token] -> PR Type
 parseType [{token = KBool}:xs] = { PR | result = TBool, tokens = xs }
@@ -87,7 +87,7 @@ parseType [{token = POpen}:xs]
 	# { result = type2, tokens = xs } = parseType (tl xs)
 	= { PR | result = TTup (type1, type2), tokens = xs }
 = case type1 of
-	(TId i) = let { PR | result = result, tokens = tokens } = f [] (tl xs) in { PR | result = TAlg i result, tokens = tokens } where
+	(TId i) = let { PR | result = result, tokens = tokens } = f [] xs in { PR | result = TAlg i result, tokens = tokens } where
 		f :: [Type] [Token] -> PR [Type]
 		f acc [{ token = PClose }:tokens] = { PR | tokens = tokens, result = acc }
 		f acc t = let { PR | tokens = tokens, result = result } = parseType t in f [result:acc] tokens
@@ -228,9 +228,18 @@ where
 	parseFactorExp tokens=:[{token = KTrue}:xs] = pr (e2 ETrue tokens) xs
 	parseFactorExp tokens=:[{token = KFalse}:xs] = pr (e2 EFalse tokens) xs
 	parseFactorExp tokens=:[{token = SBOpen}:[{token = SBClose}:xs]] = pr (e2 EBlock tokens) xs
-	parseFactorExp tokens=:[{token = SBOpen}:[{token = Identifier c}:xs]] = case xs of
-		[{token = SBClose}:xxs] = pr (e2 (Alg c []) xxs) xxs
-		tokens = let { PR | result = e, tokens = t } = (parseExp ~> (parseSymbol SBClose)) tokens in pr (e2 (Alg c [e]) t) t	
+	parseFactorExp tokens=:[{token = KNew}:[{token = Identifier c}:xs]] = case xs of
+		[{token = KNew}:_] = f
+		[{token = SBOpen}:_] = f
+		[{token = Op Not}:_] = f
+		[{token = Op Min}:_] = f
+		[{token = POpen}:_] = f
+		[{token = KTrue}:_] = f	
+		[{token = KFalse}:_] = f
+		[{token = Integer _}:_] = f
+		[{token = Identifier _}:_] = f
+		_ = { PR | result = e2 (Alg c []) xs, tokens = xs }	
+	where f = let { PR | result = e, tokens = xe } = parseExp xs in { PR | result = e2 (Alg c [e]) xe, tokens = xe }
 	parseFactorExp tokens=:[{token = POpen}:xs] = case e.PR.tokens of
 		[{token = Comma}:xxs] = let ex = parseExp xxs in if ((hd ex.PR.tokens).token === PClose) (pr (e2 (Tup e.PR.result ex.PR.result) tokens) (tl ex.PR.tokens)) (parseError xxs "expecting )")
 		[{token = PClose}:xss] = pr (e2 (EBrace e.PR.result) tokens) xss
