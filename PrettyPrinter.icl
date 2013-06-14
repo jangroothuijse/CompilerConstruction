@@ -17,7 +17,7 @@ instance pretty Decl
 where 
 	pretty n (V varDecl) = pretty n varDecl
 	pretty n (F funDecl) = pretty n funDecl
-	pretty n (A algDecl) = pretty n algDecl
+	pretty n (A algDecl) = (pretty n algDecl) +++ ";\n"
 instance pretty VarDecl where pretty n v = (tabs n) +++ (toString v.type) +++ " " +++ (toString v.name) +++ " = " +++ (toString v.exp) +++ ";\n"
 instance pretty FunDecl 
 where pretty n f = (toString f.retType) +++ " " +++ 
@@ -48,7 +48,7 @@ instance toString Type where
 	toString TEmpty = "(No type)"
 	toString (TFixed i) = "(Fixed: " +++ (toString i) +++ ")"
 	toString (TAlg i []) = i
-	toString (TAlg i t) = "(" +++ i +++ (implode " " t) +++ ")"
+	toString (TAlg i t) = "(" +++ i +++ " " +++ (implode " " t) +++ ")"
 instance toString RetType where
 	toString TVoid = "Void"
 	toString (RT type) = toString type
@@ -63,8 +63,8 @@ instance toString Exp2 where
 	toString (EBrace e) = "(" +++ (toString e) +++ ")"
 	toString (EFC fun) = toString fun
 	toString EBlock = "[]"
-	toString (Alg c []) = "[ " +++ c +++ " ]"
-	toString (Alg c [e]) = "[ " +++ c +++  " " +++ (toString e) +++ " ]"
+	toString (Alg c []) = "new " +++ c
+	toString (Alg c [e]) = "new " +++ c +++  " " +++ (toString e)
 	toString (Tup e1 e2) = "(" +++ (toString e1) +++ ", " +++ (toString e2) +++ ")"
 instance toString FunCall where toString fc = (toString fc.callName) +++ "(" +++ (commaSeperated fc.callArgs) +++ ")"
 instance toString Op2 where
@@ -85,4 +85,5 @@ instance toString Op2 where
 instance toString Op1 where
 	toString PNot = "!"
 	toString PNeg = "-"
-instance toString AlgPart where toString ap = (toString ap.apname) +++ " " +++ (toString ap.atype)
+instance toString AlgPart where toString ap = (toString ap.apname) +++ (if (ap.atype === TEmpty) "" (" " +++ (toString ap.atype)))
+derive gEq Type, RetType

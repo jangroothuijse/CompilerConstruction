@@ -69,6 +69,7 @@ tokenizerString acc xxs=:[x:xs] begin
 	"type"		= [t begin KType:tokenizer xxs]
 	"match"		= [t begin KMatch:tokenizer xxs]
 	"case"		= [t begin KCase:tokenizer xxs]
+	"new"		= [t begin KNew:tokenizer xxs]
 	s			= [t begin (Identifier s):tokenizer xxs]
 
 tokenizerInt :: !Int [CharMeta] CharMeta -> [Token]

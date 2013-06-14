@@ -8,8 +8,8 @@ Bool isNothing((Maybe a) m) {
 }
 
 Void main () {
-	(Maybe Int) n = [ Nothing ];
-	(Maybe Int) o = [ Just 1 ];
+	(Maybe Int) n = new Nothing;
+	(Maybe Int) o = new Just 1;
 	
 	print (isNothing(n));
 	print (isNothing(o));
