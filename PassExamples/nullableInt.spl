@@ -1,0 +1,16 @@
+type NullableInt = Null | I Int;
+
+(NullalbeInt) null() {
+	return new Null;
+}
+
+Bool isNull((NullableInt) n) {
+	match (n) {
+		case (Null) return True;
+		case (I _) return False;
+	}
+}
+
+Void main() {
+	print(isNull(null()));
+}
