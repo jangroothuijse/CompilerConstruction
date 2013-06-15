@@ -39,6 +39,7 @@ toSSMCommandsExp (Readl i) = [S (Sldl i)]
 toSSMCommandsExp (EOp2 op2) = toSSMCommandsOp2 op2
 toSSMCommandsExp (EOp1 op1) = toSSMCommandsOp1 op1
 toSSMCommandsExp (EFCall name) = [S (Sbsr name), S SldrRR]
+toSSMCommandsExp (EFCallD name i) = [S (Sbsr name), S (Sajs (~i)), S SldrRR]
 toSSMCommandsExp (Put i) = [S (Sldc i)]
 toSSMCommandsExp (Drope i) = [S (Sajs (~i))]
 

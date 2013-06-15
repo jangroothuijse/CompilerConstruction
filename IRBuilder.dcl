@@ -19,6 +19,7 @@ import SemanticAnalyzer, Parser
 	| Readl Int // Read a local var or param. (First param is -n, second -n+1, ... last param is -1, first local var is 1, second 2...) 0 is the return adress on the stack.
 	| EOp2 Op2 | EOp1 Op1	// Call operator n. (+, -, *, / etc. All build in operators).
 	| EFCall Id	// Call function Id. We add a function to generate Tupels and Lists.
+	| EFCallD Id Int	// Call function Id, drops Int params from stack before calling RR.
 	| Put Int	// All values are transformed to Int, this Int could be a Int, a Bool or a Char. Tupels and list's do not exist as primitives but can be created by functions and read from vars.
 	| Drope Int
 // Example of Command:

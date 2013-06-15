@@ -50,9 +50,9 @@ toExpExp2 _ ETrue = [Put 1]
 toExpExp2 inf (EBrace exp) = toExpExp inf exp
 toExpExp2 inf (EFC f) = toExpFCall inf f
 toExpExp2 _ EBlock = [EFCall "__createEBlock"]
-toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCall "__createTup"] ++ [Drope 2]
-toExpExp2 inf=:(mainDecls, _, _) (Alg id [exp]) = [Put (getAlgNr mainDecls id)] ++ (toExpExp inf exp) ++ [EFCall "__createAlg"] ++ [Drope 2]
-toExpExp2 (mainDecls, _, _) (Alg id []) = [Put (getAlgNr mainDecls id), Put 0] ++ [EFCall "__createAlg"] ++ [Drope 2]
+toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCallD "__createTup" 2]
+toExpExp2 inf=:(mainDecls, _, _) (Alg id [exp]) = [Put (getAlgNr mainDecls id)] ++ (toExpExp inf exp) ++ [EFCallD "__createAlg" 2]
+toExpExp2 (mainDecls, _, _) (Alg id []) = [Put (getAlgNr mainDecls id), Put 0] ++ [EFCallD "__createAlg" 2]
 
 toExpFCall :: IRInfo FunCall -> [CExp]
 toExpFCall inf { callName = name, callArgs = exps } = (flatten (map (toExpExp inf) exps)) ++ [EFCall name] ++ [Drope (length exps)]
@@ -109,7 +109,7 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	toBlockStmt (Match var cases) i
 	#exp = CExp (toExpExp2 inf (I var))
 	#(cases, blocks, i) = toIRCases inf var cases i
-	=([exp, CFCall "fst", BranchMatch cases], blocks, i)
+	=([exp, CExp [(EFCall "fst")], BranchMatch cases], blocks, i)
 
 toIRCases :: IRInfo Id [Case] Int -> ([(Int, Id)], [Block], Int)
 toIRCases inf=:(mainDecls, _, _) tvar [Case name var stmt:xs] i
