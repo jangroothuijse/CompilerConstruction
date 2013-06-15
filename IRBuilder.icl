@@ -149,13 +149,13 @@ toIRCaseBlock inf stmt [var] tvar blockName = toBlockStmts inf blockName [c stmt
 getAlgNr :: [Decl] Id -> Int
 getAlgNr [V _:xs] type = getAlgNr xs type
 getAlgNr [F _:xs] type = getAlgNr xs type
-getAlgNr [A {adname = name, parts = parts}:xs] type = getAlgNr` 0 parts xs
+getAlgNr [A {adname = type, parts = parts}:xs] name = getAlgNr` 0 parts xs
 	where
 	getAlgNr` i [{apname = name`}:xs] xss
 	|name` == name = i
 	= getAlgNr` (i+1) xs xss
-	getAlgNr` _ [] xss = getAlgNr xss type
-getAlgNr _ x = abort ("getAlgNr used incorrect: " +++ x) // Shouldn't happen
+	getAlgNr` _ [] xss = getAlgNr xss name
+getAlgNr _ x =abort ("getAlgNr used incorrect: " +++ x) // Shouldn't happen
 
 getId :: String Int -> (String, Int)
 getId s i = ("_" +++ (toString i) +++ "_" +++ s, i+1)
