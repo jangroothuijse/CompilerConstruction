@@ -3,7 +3,7 @@ definition module TypeChecker
 import DigitalTree, Parser, StdMaybe
 
 :: Env = { subs :: (Type -> Type), functionId :: Maybe Id, freshId :: Int, envLine :: Int, envColumn :: Int }
-:: UEnv = { console :: !.File, e :: Env, error :: Bool, global :: .DigitalTree Type, local :: .DigitalTree Type, o1 :: Op1 -> Type, o2 :: Op2 -> Type  }
+:: UEnv = { console :: !.File, e :: Env, error :: Bool, global :: .DigitalTree Type, local :: .DigitalTree Type, types :: .DigitalTree AlgDecl, o1 :: Op1 -> Type, o2 :: Op2 -> Type, ro :: [(Id, Type)] }
 
 class typeCheck a :: !*UEnv !a !Type -> *UEnv
 instance typeCheck Type

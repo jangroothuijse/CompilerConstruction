@@ -10,10 +10,10 @@ a = (TId "a")
 
 splDefaultEnv :: !*File -> *UEnv
 splDefaultEnv console = { UEnv | console = console, e = { Env | 
-	functionId = Nothing, freshId = 0, subs = id, envLine = 0, envColumn = 0 }, error = False, local = newTree 63, o1 = op1Type, o2 = op2Type,
+	functionId = Nothing, freshId = 0, subs = id, envLine = 0, envColumn = 0 }, error = False, local = newTree 63, types = newTree 63, o1 = op1Type, o2 = op2Type,
 	global = foldl (addIndexed) (newTree 63) [ ("isEmpty", (TFun (RT TBool) [TList t]) ), ("hd", (TFun (RT t) [TList t]) ),
 			("tl", (TFun (RT (TList t)) [TList t]) ), ("fst", (TFun (RT a) [TTup (a, t)]) ), 
-			("snd", (TFun (RT t) [TTup (a, t)]) ), ("print", (TFun TVoid [t]) ) ] }
+			("snd", (TFun (RT t) [TTup (a, t)]) ), ("print", (TFun TVoid [t]) ) ], ro = [] }
 			
 op2Type :: Op2 -> Type
 op2Type PPlus = TFun (RT TInt) [TInt, TInt]

@@ -21,8 +21,11 @@ typeFor e=:{ local = local, global = global } i
 	# (result, local) = local getIndexed (i, TEmpty)
 	| not (result === TEmpty) = (result, { e & local = local })
 	# (result, global) = global getIndexed (i, TEmpty)
+	| not (result === TEmpty) = (result, { e & local = local, global = global })
+	# (e, result) = getro { e & local = local, global = global } i
 	| result === TEmpty = abort ("Cannot find " +++ i)
-	= (result, { e & local = local, global = global })
+	= (result, e)
+	
 
 returnTypeCheck :: *UEnv RetType RetType -> *UEnv
 returnTypeCheck e t1 t2 = if (not (isVoid t2 || isVoid t2)) (typeCheck e (nonVoid t1) (nonVoid t2)) (if (isVoid t1 && isVoid t2) e (typingError e "Unexpected void"))
@@ -33,6 +36,7 @@ instance replaceId Type where
 	replaceId i t (TList l) = TList (replaceId i t l)
 	replaceId i t (TFun TVoid ta) = TFun TVoid (map (replaceId i t) ta)
 	replaceId i t (TFun (RT rt) ta) = TFun (RT (replaceId i t rt)) (map (replaceId i t) ta)
+	replaceId i t (TAlg n ta) = TAlg n (map (replaceId i t) ta)
 	replaceId i t1 t2 = t2 // TInt etc are unaffected
 instance replaceId RetType where
 	replaceId i t TVoid = TVoid
@@ -46,6 +50,7 @@ instance allIds Type where
 	allIds (TTup (a, b)) = allIds a ++ (allIds b)
 	allIds (TList l) = allIds l
 	allIds (TFun TVoid ta) = flatten (map (allIds) ta)
+	allIds (TAlg n ta) = flatten (map (allIds) ta)
 	allIds (TFun (RT rt) ta) = allIds rt ++ flatten (map (allIds) ta)
 	allIds t = []
 instance allIds RetType where allIds t = if (isVoid t) [] (allIds (nonVoid t))
@@ -67,6 +72,11 @@ tupleCheck ue =: { e = e } t = typeCheck ue (fst t) (e.subs (snd t))
 
 isTEmpty TEmpty = True
 isTEmpty _ = False
+
+algCT :: AlgDecl Id -> Maybe Type
+algCT { parts = parts } c = f parts where
+	f [] = Nothing
+	f [{apname = apname, atype = atype}:xs] = if (apname == c) (Just atype) (f xs)
 
 typingError :: *UEnv String -> *UEnv
 typingError e =: { e = env } s = { e & console = e.console <<< ("TYPE ERROR: on line " +++ (toString e.e.envLine) +++ " column "
@@ -112,7 +122,18 @@ instance typeCheck Exp2 where
 		ue2 = (typeCheck ue a2 b2)
 		ue3 = typeCheck { ue2 & e = { e & subs = e.subs } } a1 b1
 	typeCheck e EFalse type = typeCheck e TBool type
-	typeCheck e ETrue type = typeCheck e TBool type
+	typeCheck e ETrue type = typeCheck e TBool type	
+	typeCheck e=:{ types = types } (Alg c []) (TAlg n p) // Typechecks Algebraic Constructor Expressions without argument
+	# (decl, types) = types get (n, { adname = "", poly = [], parts = [] })
+	= case (algCT decl c) of
+		(Just TEmpty) = { e & types = types }
+		_ = { e & console = e.console <<< ("Constructor " +++ c +++ " does not exists or requires an argument"), error = True, types = types }
+	// TODO declaredTypeFor id must check it type
+	typeCheck e=:{ types = types } (Alg c [exp]) (TAlg n p) // Typechecks Algebraic Constructor Expressions with argument
+	# (decl, types) = types get (n, { adname = "", poly = [], parts = [] })
+	= case (algCT decl c) of // TODO apply consisten renaming of the type parameters
+		(Just t) = typeCheck { e & types = types } exp t 
+		_ = { e & console = e.console <<< ("Constructor " +++ c +++ " does not exists for type " +++ n), error = True, types = types }
 	typeCheck ue =: { e = e } (EFC f) type
 	# (funType, uea) = (typeFor ue f.callName)
 	# (env1, freshFunType) = freeIds (e, funType) (allIds funType) // TODO use locals?

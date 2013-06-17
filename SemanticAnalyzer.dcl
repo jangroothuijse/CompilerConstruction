@@ -6,3 +6,5 @@ check :: *UEnv Prog -> (*UEnv, Prog)
 
 class analyze a :: *UEnv a -> *UEnv
 instance analyze Prog
+
+getro :: *UEnv !Id -> (*UEnv, Type)

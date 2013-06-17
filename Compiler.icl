@@ -45,4 +45,3 @@ Start world
 #(succes, world) = fclose outputFile world
 | not succes = abort "Fail to close output file"
 = console // (ssmCode, "\n", toIR prog, "\n", prog, world)
-
