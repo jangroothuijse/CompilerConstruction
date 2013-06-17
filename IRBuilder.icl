@@ -49,13 +49,13 @@ toExpExp2 _ EFalse = [Put 0]
 toExpExp2 _ ETrue = [Put 1]
 toExpExp2 inf (EBrace exp) = toExpExp inf exp
 toExpExp2 inf (EFC f) = toExpFCall inf f
-toExpExp2 _ EBlock = [EFCall "__createEBlock"]
-toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCallD "__createTup" 2]
-toExpExp2 inf=:(mainDecls, _, _) (Alg id [exp]) = [Put (getAlgNr mainDecls id)] ++ (toExpExp inf exp) ++ [EFCallD "__createAlg" 2]
-toExpExp2 (mainDecls, _, _) (Alg id []) = [Put (getAlgNr mainDecls id), Put 0] ++ [EFCallD "__createAlg" 2]
+toExpExp2 _ EBlock = [EFCall "__createEBlock" 0]
+toExpExp2 inf (Tup ex1 ex2) = (toExpExp inf ex1) ++ (toExpExp inf ex2) ++ [EFCall "__createTup" 2]
+toExpExp2 inf=:(mainDecls, _, _) (Alg id [exp]) = [Put (getAlgNr mainDecls id)] ++ (toExpExp inf exp) ++ [EFCall "__createAlg" 2]
+toExpExp2 (mainDecls, _, _) (Alg id []) = [Put (getAlgNr mainDecls id), Put 0] ++ [EFCall "__createAlg" 2]
 
 toExpFCall :: IRInfo FunCall -> [CExp]
-toExpFCall inf { callName = name, callArgs = exps } = (flatten (map (toExpExp inf) exps)) ++ [EFCall name] ++ [Drope (length exps)]
+toExpFCall inf { callName = name, callArgs = exps } = (flatten (map (toExpExp inf) exps)) ++ [EFCall name (length exps)]
 
 toBlockStmts :: IRInfo Id [Stmt] -> [Block]
 toBlockStmts inf=:(mainDecls, args, vars) name s
@@ -90,7 +90,7 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#(id`, i) = getId name i
 	#exp = toIRExp inf exp
 	#(commands, blocks, i) = toBlockStmts [stmt] i
-	=([ Label id, exp, BranchIf id`],[{ name = id`, commands = commands ++ [Branch id]}:blocks], i)
+	=([Label id, exp, BranchIf id`],[{ name = id`, commands = commands ++ [Branch id]}:blocks], i)
 	toBlockStmt (Ass id exp) i
 	#exp = toIRExp inf exp
 	|isLocal args vars id
@@ -99,7 +99,7 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	toBlockStmt (SFC funCall) i
 	#(id, i) = getId name i
 	#exp = toIRExps inf funCall.callArgs
-	=(exp ++ [CFCall funCall.callName] ++ [Drop (length funCall.callArgs)],[], i)
+	=(exp ++ [CFCall funCall.callName (length funCall.callArgs)],[], i)
 	toBlockStmt Return i
 	=([CReturn], [], i)
 	toBlockStmt (Returne exp) i
@@ -107,44 +107,43 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	|(length vars)==0 = ([exp, CReturne], [], i)
 	=([exp, CReturne], [], i)	
 	toBlockStmt (Match var cases) i
-	#exp = CExp (toExpExp2 inf (I var))
-	#(cases, blocks, i) = toIRCases inf var cases i
-	=([exp, CExp [(EFCall "fst")], BranchMatch cases], blocks, i)
-
-toIRCases :: IRInfo Id [Case] Int -> ([(Int, Id)], [Block], Int)
-toIRCases inf=:(mainDecls, _, _) tvar [Case name var stmt:xs] i
-#(id, i) = getId name i
-#(cases, blocks, i) = toIRCases inf tvar xs i
-#block = toIRCaseBlock inf stmt var tvar id
-=([(getAlgNr mainDecls name, id):cases], block ++ blocks, i)
-toIRCases _ _ [] i = ([], [], i)
-
-toIRCaseBlock :: IRInfo Stmt [Id] Id Id -> [Block]
-toIRCaseBlock inf stmt [] tvar blockName = toBlockStmts inf blockName [stmt]
-toIRCaseBlock inf stmt [var] tvar blockName = toBlockStmts inf blockName [c stmt]
-	where
-	// replace var in block with snd(tvar)
-	c (Block stmt) = Block (map c stmt)
-	c (If exp stmt) = If (ce exp) (c stmt)
-	c (Ife exp stmt1 stmt2) = Ife (ce exp) (c stmt1) (c stmt2)
-	c (While exp stmt) = While (ce exp) (c stmt)
-	c (Ass id exp) = Ass id (ce exp)
-	c (Returne exp) = Returne (ce exp)
-	c (Match id cases) = Match id (map cc cases)
-	c (SFC f) = SFC {f & callArgs = map ce f.callArgs}
-	c x = x
-	ce e = {e & ex = (ce2 e.ex)}
-	ce2 (I id)
-	|id == var = EFC { callName = "snd", callArgs = [{ex = I tvar, eline = 0, ecolumn = 0}]}
-	= I id
-	ce2 (EFC f) = EFC {f & callArgs = map ce f.callArgs}
-	ce2 (Op2 exp1 op2 exp2) = Op2 (ce exp1) op2 (ce exp2)
-	ce2 (Op1 op1 exp) = Op1 op1 (ce exp)
-	ce2 (EBrace exp) = EBrace (ce exp)
-	ce2 (Tup exp1 exp2) = Tup (ce exp1) (ce exp2)
-	ce2 (Alg id exps) = Alg id (map ce exps)
-	ce2 x = x
-	cc (Case id ids stmt) = Case id ids (c stmt)
+	#(id, i) = getId name i // return position
+	#exp = CExp (toExpExp2 inf (I var)) // read alg
+	#(cases, blocks, i) = toIRCases var cases id i
+	=([exp, CExp [(EFCall "fst" 1)], BranchMatch cases, Label id], blocks, i)
+	toIRCases :: Id [Case] Id Int -> ([(Int, Id)], [Block], Int)
+	toIRCases tvar [Case cname var stmt:xs] retname i
+	#(id, i) = getId name i
+	#(command, block, i) = toIRCaseBlock stmt var tvar i
+	#(cases, blocks, i) = toIRCases tvar xs retname i
+	=([(getAlgNr mainDecls cname, id):cases], [{ name = id, commands = command ++ [Branch retname]}] ++ block ++ blocks, i)
+	toIRCases _ _ _ i = ([], [], i)
+	toIRCaseBlock :: Stmt [Id] Id Int -> ([Command], [Block], Int)
+	toIRCaseBlock stmt [] tvar i = toBlockStmts [stmt] i
+	toIRCaseBlock stmt [var] tvar i = toBlockStmts [c stmt] i
+		where
+		// replace var in block with snd(tvar)
+		c (Block stmt) = Block (map c stmt)
+		c (If exp stmt) = If (ce exp) (c stmt)
+		c (Ife exp stmt1 stmt2) = Ife (ce exp) (c stmt1) (c stmt2)
+		c (While exp stmt) = While (ce exp) (c stmt)
+		c (Ass id exp) = Ass id (ce exp)
+		c (Returne exp) = Returne (ce exp)
+		c (Match id cases) = Match id (map cc cases)
+		c (SFC f) = SFC {f & callArgs = map ce f.callArgs}
+		c x = x
+		ce e = {e & ex = (ce2 e.ex)}
+		ce2 (I id)
+		|id == var = EFC { callName = "snd", callArgs = [{ex = I tvar, eline = 0, ecolumn = 0}]}
+		= I id
+		ce2 (EFC f) = EFC {f & callArgs = map ce f.callArgs}
+		ce2 (Op2 exp1 op2 exp2) = Op2 (ce exp1) op2 (ce exp2)
+		ce2 (Op1 op1 exp) = Op1 op1 (ce exp)
+		ce2 (EBrace exp) = EBrace (ce exp)
+		ce2 (Tup exp1 exp2) = Tup (ce exp1) (ce exp2)
+		ce2 (Alg id exps) = Alg id (map ce exps)
+		ce2 x = x
+		cc (Case id ids stmt) = Case id ids (c stmt)
 
 getAlgNr :: [Decl] Id -> Int
 getAlgNr [V _:xs] type = getAlgNr xs type

@@ -2,20 +2,20 @@ type Maybe a = Nothing | Just a;
 
 Bool isNothing((Maybe a) m) {
 	match (m) {
-		case (Nothing) return True;
-		case (Just a) return False;
+		case (Nothing) return 5;
+		case (Just a) return 6;
 	}
 }
 
 Void main () {
 	(Maybe Int) n = new Nothing;
-	(Maybe Int) o = new Just 1;
+	(Maybe Int) o = new Just 3;
 	
 	print (isNothing(n));
 	print (isNothing(o));
 	
 	match (o) {
-		case (Nothing) print(False);
+		case (Nothing) print(4);
 		case (Just i) print(i);
 	}
 }
