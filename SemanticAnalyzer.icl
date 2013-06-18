@@ -36,11 +36,13 @@ instance analyze Decl where
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f
 	analyze e (A a) = analyze e a
-instance analyze VarDecl where analyze ue=:{ global = g } v = typeCheck (analyze { ue & global = g addIndexed (v.name, v.type), local = newTree 63 } v.exp) v.exp (toFixed v.type)	
+instance analyze VarDecl where analyze ue=:{ global = g } v = abort (toString (toFixed v.type))
+
+	//typeCheck (analyze { ue & global = g addIndexed (v.name, v.type), local = newTree 63 } v.exp) v.exp (toFixed v.type)	
 // AlgDecl's are correct when all used parameters, are actually parameters and that all used types are defined
 instance analyze AlgDecl 
 where analyze ue a = if (foldl (\b part -> b && (foldl (\b2 i -> b2 && isMember i a.poly) True (allIds part.atype))) True a.parts)
-			{ ue & types = ue.types add (a.adname, a) }
+			{ ue & types = ue.types addIndexed (a.adname, a) }
 			{ ue & console = ue.console <<< "Algebraic datatype badly defined", error = True }
 
 //ue // TODO check if used types exists (or are parameters), add type of the type environment
@@ -52,7 +54,7 @@ instance analyze FunDecl where
 		console2 = console <<< (if (old === TEmpty) "" 
 			("ERROR " +++ f.funName +++ " multiply defined on line " +++ (toString f.fline) +++ " column " +++ (toString f.fcolumn) +++ "\n"))
 		updatedGlobal = uGlobal addIndexed (f.funName, TFun (f.retType) [a.argType \\ a <- f.args])
-		localVar ue=: { local = local } v = { ue & local = local addIndexed (v.name, toFixed v.type) }
+		localVar ue=: { local = local } v = typeCheck { ue & local = local addIndexed (v.name, toFixed v.type) } v.exp (toFixed v.type)
 instance analyze Stmt where
 	analyze e (Block l) = fa e l
 	analyze e (If exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
@@ -60,10 +62,16 @@ instance analyze Stmt where
 	analyze e (While exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
 	analyze ue (Ass i exp) = let (t, ue2) = typeFor ue i in typeCheck (idExists ue2 i) exp t
 	analyze e (SFC f) = typeCheck (analyze e f) (EFC f) TEmpty
-	analyze e (Match name cases) = foldl analyzeCase e cases where
-		analyzeCase :: *UEnv Case -> *UEnv
-		analyzeCase e (Case c [] stmt) = analyze e stmt
-		analyzeCase e (Case c [varname] stmt) = popro (analyze (pushro e2 (varname, atype)) stmt) where (atype, e2) = typeFor e name	
+	analyze e (Match name cases)
+	# (matchType, e=:{ types = types }) = typeFor e name
+	= case matchType of
+		(TAlg algTName params)
+			# (algDecl, types) = types getIndexed (algTName, { adname = "", poly = [], parts = [] })
+			= foldl (analyzeCase (algRewrite algDecl params)) { e & types = types } cases where
+				analyzeCase :: (Type -> Type) *UEnv Case -> *UEnv
+				analyzeCase r e (Case c [] stmt) = analyze e stmt
+				analyzeCase r e (Case c [varname] stmt) = popro (analyze (pushro e2 (varname, r atype)) stmt) where (atype, e2) = typeFor e name
+		t = { e & console = e.console <<< ("Trying to match on non algebraic datatype " +++ name +++ ":" +++ (toString t)), types = types }
 		// TODO check completeness?		
 	analyze ue=:{e=e} Return = let (t, ue2) = typeFor ue (fromJust e.functionId) in returnHelp (typeCheck ue2 (returnType t) TEmpty) 
 	analyze ue=:{e=e} (Returne exp) = returnHelp (typeCheck (analyze ue2 exp) exp (toFixed (returnType t)))

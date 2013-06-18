@@ -77,6 +77,10 @@ algCT :: AlgDecl Id -> Maybe Type
 algCT { parts = parts } c = f parts where
 	f [] = Nothing
 	f [{apname = apname, atype = atype}:xs] = if (apname == c) (Just atype) (f xs)
+	
+
+algRewrite :: AlgDecl [Type] -> (Type -> Type)
+algRewrite { poly = poly } params = foldl (\f (x, y) -> (f o (replaceId x y))) id [(x, y) \\ x <- poly & y <- params]
 
 typingError :: *UEnv String -> *UEnv
 typingError e =: { e = env } s = { e & console = e.console <<< ("TYPE ERROR: on line " +++ (toString e.e.envLine) +++ " column "
@@ -92,6 +96,7 @@ instance typeCheck Type where
 		ue3 = typeCheck { ue2 & e = { e & subs = e.subs } } a1 b1
 	typeCheck e (TList l1) (TList l2) = typeCheck e l1 l2
 	typeCheck e (TFixed i) (TFixed j) =  if (i == j) e (typingError e (j +++ " does not match " +++ i))
+	typeCheck e (TAlg n1 p1) (TAlg n2 p2) = if (n1 == n2) (foldl tupleCheck e [(x,y)\\x<-p1&y<-p2]) (typingError e (n1 +++ " does not match " +++ n2))
 	typeCheck ue=:{ e = e } found (TId required) = { ue & e = { e & subs = (replaceId required found) o e.subs } }
 	typeCheck ue=:{ e = e } (TId found) requiredType = { ue & e = { e & subs = (replaceId found requiredType) o e.subs } }
 //  To support higher-order functions, we have no syntax to type higher order expression, but if we did, this would type them:
@@ -124,15 +129,15 @@ instance typeCheck Exp2 where
 	typeCheck e EFalse type = typeCheck e TBool type
 	typeCheck e ETrue type = typeCheck e TBool type	
 	typeCheck e=:{ types = types } (Alg c []) (TAlg n p) // Typechecks Algebraic Constructor Expressions without argument
-	# (decl, types) = types get (n, { adname = "", poly = [], parts = [] })
+	# (decl, types) = types getIndexed (n, { adname = "", poly = [], parts = [] })
 	= case (algCT decl c) of
 		(Just TEmpty) = { e & types = types }
 		_ = { e & console = e.console <<< ("Constructor " +++ c +++ " does not exists or requires an argument"), error = True, types = types }
 	// TODO declaredTypeFor id must check it type
 	typeCheck e=:{ types = types } (Alg c [exp]) (TAlg n p) // Typechecks Algebraic Constructor Expressions with argument
-	# (decl, types) = types get (n, { adname = "", poly = [], parts = [] })
+	# (decl, types) = types getIndexed (n, { adname = "", poly = [], parts = [] })
 	= case (algCT decl c) of // TODO apply consisten renaming of the type parameters
-		(Just t) = typeCheck { e & types = types } exp t 
+		(Just t) = typeCheck { e & types = types } exp ((algRewrite decl p) t)
 		_ = { e & console = e.console <<< ("Constructor " +++ c +++ " does not exists for type " +++ n), error = True, types = types }
 	typeCheck ue =: { e = e } (EFC f) type
 	# (funType, uea) = (typeFor ue f.callName)

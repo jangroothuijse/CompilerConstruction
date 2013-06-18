@@ -24,3 +24,5 @@ toFixed :: !a -> a | replaceId, allIds a
 returnType :: !Type -> Type
 
 typeFor :: *UEnv !Id -> (Type, *UEnv)
+
+algRewrite :: AlgDecl [Type] -> (Type -> Type)

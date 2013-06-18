@@ -35,7 +35,7 @@ Start world
 	| not succes = abort "Fail to close output file"
 	= console // (ssmCode, "\n", toIR prog, "\n", prog, world)
 # defaultEnv = splDefaultEnv console
-# { console = console, error = error } = analyze defaultEnv prog
+# ({ console = console, error = error }, prog) = check defaultEnv prog
 | error = abort "Semantic analyzes found errors, program rejected\n"
 # console = console <<< "Semantic analysis completed, no errors where found\n"
 # (succes, outputFile, world) = fopen "a.ssm" FWriteText world
