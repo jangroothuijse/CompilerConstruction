@@ -26,3 +26,4 @@ returnType :: !Type -> Type
 typeFor :: *UEnv !Id -> (Type, *UEnv)
 
 algRewrite :: AlgDecl [Type] -> (Type -> Type)
+algCT :: AlgDecl Id -> Maybe Type

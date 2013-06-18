@@ -67,10 +67,12 @@ instance analyze Stmt where
 	= case matchType of
 		(TAlg algTName params)
 			# (algDecl, types) = types getIndexed (algTName, { adname = "", poly = [], parts = [] })
-			= foldl (analyzeCase (algRewrite algDecl params)) { e & types = types } cases where
-				analyzeCase :: (Type -> Type) *UEnv Case -> *UEnv
-				analyzeCase r e (Case c [] stmt) = analyze e stmt
-				analyzeCase r e (Case c [varname] stmt) = popro (analyze (pushro e2 (varname, r atype)) stmt) where (atype, e2) = typeFor e name
+			= foldl (analyzeCase algDecl (algRewrite algDecl params)) { e & types = types } cases where
+				analyzeCase :: AlgDecl (Type -> Type) *UEnv Case -> *UEnv
+				analyzeCase algDecl r e (Case c [] stmt) = analyze e stmt
+				analyzeCase algDecl r e (Case c [varname] stmt) = case (algCT algDecl c) of
+					(Just atype) = popro (analyze (pushro e (varname, r atype)) stmt) 
+					_ = { e & console = e.console <<< ("Constructor " +++ c +++ " does not exists for " +++ algTName)}
 		t = { e & console = e.console <<< ("Trying to match on non algebraic datatype " +++ name +++ ":" +++ (toString t)), types = types }
 		// TODO check completeness?		
 	analyze ue=:{e=e} Return = let (t, ue2) = typeFor ue (fromJust e.functionId) in returnHelp (typeCheck ue2 (returnType t) TEmpty) 
