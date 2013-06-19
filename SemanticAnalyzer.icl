@@ -60,10 +60,15 @@ instance analyze Stmt where
 	analyze e (If exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
 	analyze e (Ife exp st1 st2) = typeCheck (errorsOnly (errorsOnly (errorsOnly e st2) st1) exp) exp TBool
 	analyze e (While exp stmt) = typeCheck (errorsOnly (errorsOnly e stmt) exp) exp TBool
-	analyze ue (Ass i exp) = let (t, ue2) = typeFor ue i in typeCheck (idExists ue2 i) exp t
+	analyze ue=:{ro = ro} (Ass i exp) 
+		| (foldl (\r (n, _) -> r || n == i) False ro) = 
+			{ ue & console = ue.console <<< (i +++ " is readonly and cannot be assigned to on line "
+			  +++ (toString exp.eline) +++ " column " +++ (toString exp.ecolumn) +++ "\n"), error = True }
+		= let (t, ue2) = typeFor ue i in typeCheck (idExists ue2 i) exp t		
 	analyze e (SFC f) = typeCheck (analyze e f) (EFC f) TEmpty
 	analyze e (Match name cases)
-	# (matchType, e=:{ types = types }) = typeFor e name
+	# (matchType, e) = typeFor e name
+	# e=:{ types = types } = pushro e (name, matchType)
 	= case matchType of
 		(TAlg algTName params)
 			# (algDecl, types) = types getIndexed (algTName, { adname = "", poly = [], parts = [] })
