@@ -66,7 +66,7 @@ parseAlg [{token = Identifier name}:xs]
 = pr (A { AlgDecl | adname = name, poly = poly, parts = parts }) t2
 where
 	parsePoly :: [Id] [Token] -> PR [Id]
-	parsePoly acc [{token = Identifier n}:xs] = parsePoly [n:acc] xs 
+	parsePoly acc [{token = Identifier n}:xs] = parsePoly (acc ++ [n]) xs 
 	parsePoly acc [] = parseError [] "expected Algebraic type declaration, found EOF"
 	parsePoly acc tokens = pr acc tokens
 	parsePart :: [AlgPart] [Token] -> PR [AlgPart]
