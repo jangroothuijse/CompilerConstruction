@@ -1,15 +1,18 @@
 type Tree a b = Leave a | Branch (b, (Tree a b, Tree a b));
+type Maybe a = Nothing | Just a;
 
-(Tree a b) Left((Tree a b) t) {
+(Maybe (Tree a b)) Left((Tree a b) t) {
 	match (t) {
-		case (Branch i) return fst(snd(i));
+		case (Leave i) return new Nothing;
+		case (Branch i) return new Just fst(snd(i));
 	}
 }
 
-(Tree a b) Right((Tree a b) t) {
+(Maybe (Tree a b)) Right((Tree a b) t) {
 	match (t) {
-		case (Branch i) return snd(snd(i));
+		case (Branch i) return new Just snd(snd(i));
 	}
+	return new Nothing;
 }
 
 viewTree((Tree a b) t) {
@@ -19,6 +22,13 @@ viewTree((Tree a b) t) {
 			print(fst(i));
 			viewTree(fst(snd(i)));
 			viewTree(snd(snd(i)));
+		}
+	}
+}
+
+viewMaybeTree((Maybe (Tree a b)) m) {
+	match(m) {
+		case (Just a) viewTree(a);
 	}
 }
 
@@ -28,9 +38,9 @@ Void main () {
 	print (isNothing(n));
 	print (isNothing(o));
 	
-	viewTree(Left(n));
+	viewMaybeTree(Left(n));
 	print(100);
-	viewTree(Right(n));
+	viewMaybeTree(Right(n));
 	print(200);
 	viewTree(n);
 	print(300);
