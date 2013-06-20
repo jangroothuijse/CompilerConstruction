@@ -85,7 +85,7 @@ parseType [{token = POpen}:xs]
 # { result = type1, tokens = xs } = parseType xs
 | (hd xs).token === Comma 
 	# { result = type2, tokens = xs } = parseType (tl xs)
-	= { PR | result = TTup (type1, type2), tokens = xs }
+	= { PR | result = TTup (type1, type2), tokens = tl xs }
 | (hd xs).token === PClose = case type1 of
 	(TId i) = { PR | result = TAlg i [], tokens = tl xs }
 	t = { PR | result = t, tokens = tl xs }
