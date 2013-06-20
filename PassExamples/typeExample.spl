@@ -1,4 +1,4 @@
-type Tree a b = Leave a | Branch (b, (Tree a b, Tree a b));
+type Tree a b = Leave a | Branch (b, ((Tree a b), (Tree a b)));
 type Maybe a = Nothing | Just a;
 
 (Maybe (Tree a b)) Left((Tree a b) t) {
@@ -15,7 +15,7 @@ type Maybe a = Nothing | Just a;
 	return new Nothing;
 }
 
-viewTree((Tree a b) t) {
+Void viewTree((Tree a b) t) {
 	match (t) {
 		case (Leave a) print(a);
 		case (Branch i) {
@@ -26,7 +26,7 @@ viewTree((Tree a b) t) {
 	}
 }
 
-viewMaybeTree((Maybe (Tree a b)) m) {
+Void viewMaybeTree((Maybe (Tree a b)) m) {
 	match(m) {
 		case (Just a) viewTree(a);
 	}
@@ -34,9 +34,6 @@ viewMaybeTree((Maybe (Tree a b)) m) {
 
 Void main () {
 	(Tree Int Int) n = new Branch(1, (new Branch(2, (new Leave 4, new Leave 5)), new Branch(6, (new Leave 7, new Leave 8))));
-	
-	print (isNothing(n));
-	print (isNothing(o));
 	
 	viewMaybeTree(Left(n));
 	print(100);
