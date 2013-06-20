@@ -5,7 +5,6 @@ Bool isNothing((Maybe a) m) {
 		case (Nothing) return True;
 		case (Just a) return False;
 	}
-	return True;
 }
 
 Void main () {
@@ -16,7 +15,7 @@ Void main () {
 	print (isNothing(o));
 	
 	match (o) {
-		case (Nothing) print(4);
+		case (Nothing) o = new Just 4;
 		case (Just i) print(i);
 	}
 }

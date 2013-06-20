@@ -43,7 +43,7 @@ instance analyze VarDecl where analyze ue=:{ global = g } v = abort (toString (t
 instance analyze AlgDecl 
 where analyze ue a = if (foldl (\b part -> b && (foldl (\b2 i -> b2 && isMember i a.poly) True (allIds part.atype))) True a.parts)
 			{ ue & types = ue.types addIndexed (a.adname, a) }
-			{ ue & console = ue.console <<< "Algebraic datatype badly defined", error = True }
+			{ ue & console = ue.console <<< ("Algebraic datatype " +++ a.adname +++ " ill defined\n"), error = True }
 
 //ue // TODO check if used types exists (or are parameters), add type of the type environment
 instance analyze FunDecl where
@@ -65,7 +65,7 @@ instance analyze Stmt where
 			{ ue & console = ue.console <<< (i +++ " is readonly and cannot be assigned to on line "
 			  +++ (toString exp.eline) +++ " column " +++ (toString exp.ecolumn) +++ "\n"), error = True }
 		= let (t, ue2) = typeFor ue i in typeCheck (idExists ue2 i) exp t		
-	analyze e (SFC f) = typeCheck (analyze e f) (EFC f) TEmpty
+	analyze e (SFC f) = typeCheck (analyze e f) (EFC f) (TId "a")
 	analyze e (Match name cases)
 	# (matchType, e) = typeFor e name
 	# e=:{ types = types } = pushro e (name, matchType)
@@ -118,6 +118,19 @@ where
 	rtCheck t (While _ stmt) 	= (fst (rtCheck t stmt), False) // See if..
 	rtCheck (e, _) Return 		= (e, True)
 	rtCheck (e, _) (Returne _) 	= (e, not (isVoid f.retType))
+	rtCheck (e, b) (Match n cases)
+	# (matchType, e=:{ types = types }) = typeFor e n
+	= case matchType of 
+		(TAlg algTName _)
+			# (algDecl, types) = types getIndexed (algTName, { adname = "", poly = [], parts = [] })
+			| length algDecl.parts <> length cases || length algDecl.parts == 0 = ({ e & types = types }, False)
+			= let (e3, b3, _) = foldl (caseRTCheck) ({ e & types = types }, True, []) cases in (e3, b3) where
+				caseRTCheck :: !(!*UEnv, !Bool, [Id]) Case -> (*UEnv, Bool, [Id])
+				caseRTCheck (e, False, doneCases) _ = (e, False, doneCases)
+				caseRTCheck (e, b, doneCases) (Case caseName _ stmt)
+				| (isMember caseName doneCases) = (e, False, doneCases)
+				= let (e2, b2) = rtCheck (e, False) stmt in (e2, b2, [caseName:doneCases])
+		t = ({ e & console = e.console <<< ("Trying to match on non algebraic datatype " +++ n +++ ":" +++ (toString t)) }, False)
 	rtCheck t _ 				= t // Assignment, functioncalls
 	
 derive gEq Type, RetType
