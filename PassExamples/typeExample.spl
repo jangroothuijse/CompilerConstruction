@@ -3,9 +3,9 @@ type Maybe a = Nothing | Just a;
 
 (Maybe (Tree a b)) Left((Tree a b) t) {
 	match (t) {
-		case (Leave i) return new Nothing;
 		case (Branch i) return new Just fst(snd(i));
 	}
+	return new Nothing;
 }
 
 (Maybe (Tree a b)) Right((Tree a b) t) {
@@ -33,7 +33,7 @@ Void viewMaybeTree((Maybe (Tree a b)) m) {
 }
 
 Void main () {
-	(Tree Int Int) n = new Branch(1, (new Branch(2, (new Leave 4, new Leave 5)), new Branch(6, (new Leave 7, new Leave 8))));
+	(Tree Int Int) n = new Branch(1, (new Branch(2, (new Leave 3, new Leave 4)), new Branch(5, (new Leave 6, new Leave 7))));
 	
 	viewMaybeTree(Left(n));
 	print(100);
