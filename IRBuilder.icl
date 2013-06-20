@@ -110,7 +110,7 @@ toBlockStmts inf=:(mainDecls, args, vars) name s
 	#(id, i) = getId name i // return position
 	#exp = CExp (toExpExp2 inf (I var)) // read alg
 	#(cases, blocks, i) = toIRCases var cases id i
-	=([exp, CExp [(EFCall "fst" 1)], BranchMatch cases, Label id], blocks, i)
+	=([exp, CExp [(EFCall "fst" 1)], BranchMatch cases id], blocks, i)
 	toIRCases :: Id [Case] Id Int -> ([(Int, Id)], [Block], Int)
 	toIRCases tvar [Case cname var stmt:xs] retname i
 	#(id, i) = getId name i
