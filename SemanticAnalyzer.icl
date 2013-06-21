@@ -36,9 +36,7 @@ instance analyze Decl where
 	analyze e (V v) = analyze e v	
 	analyze e (F f) = analyze e f
 	analyze e (A a) = analyze e a
-instance analyze VarDecl where analyze ue=:{ global = g } v = abort (toString (toFixed v.type))
-
-	//typeCheck (analyze { ue & global = g addIndexed (v.name, v.type), local = newTree 63 } v.exp) v.exp (toFixed v.type)	
+instance analyze VarDecl where analyze ue=:{ global = g } v = typeCheck (analyze { ue & global = g addIndexed (v.name, v.type), local = newTree 63 } v.exp) v.exp (toFixed v.type)	
 // AlgDecl's are correct when all used parameters, are actually parameters and that all used types are defined
 instance analyze AlgDecl 
 where analyze ue a = if (foldl (\b part -> b && (foldl (\b2 i -> b2 && isMember i a.poly) True (allIds part.atype))) True a.parts)

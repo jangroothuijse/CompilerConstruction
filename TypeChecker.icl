@@ -23,7 +23,7 @@ typeFor e=:{ local = local, global = global } i
 	# (result, global) = global getIndexed (i, TEmpty)
 	| not (result === TEmpty) = (result, { e & local = local, global = global })
 	# (e, result) = getro { e & local = local, global = global } i
-	| result === TEmpty = abort ("Cannot find " +++ i)
+	| result === TEmpty = abort ("Cannot find " +++ i +++ "\n")
 	= (result, e)
 	
 

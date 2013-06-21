@@ -9,13 +9,13 @@ Bool isNothing((Maybe a) m) {
 
 Void main () {
 	(Maybe Int) n = new Nothing;
-	(Maybe Int) o = new Just 1;
+	(Maybe Int) m = new Just 1;
 	
 	print (isNothing(n));
-	print (isNothing(o));
+	print (isNothing(m));
 	
-	match (o) {
-		case (Nothing) o = new Just 4;
+	match (m) {
+		case (Nothing) print(4);
 		case (Just i) print(i);
 	}
 }
